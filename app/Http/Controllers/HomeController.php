@@ -25,6 +25,9 @@ class HomeController extends Controller
             ->where(function($q) {
                 $q->whereNull('media_meta->is_community')->orWhere('media_meta->is_community', false);
             })
+            ->when(\Illuminate\Support\Facades\Schema::hasColumn('posts', 'member_community_id'), function ($q) {
+                $q->whereNull('member_community_id');
+            })
             ->orderBy('published_at', 'desc');
         if ($type === 'photo' || $type === 'image' || $type === 'photos' || $type === 'images') {
             $query->where(function($q) {
@@ -80,11 +83,7 @@ class HomeController extends Controller
         $activeAds = Advertisement::where('is_active', true)->orderBy('created_at', 'desc')->get();
 
         // Dynamically compute trending tags from real posts
-        $allPublished = Post::where('status', 'published')
-            ->where(function($q) {
-                $q->whereNull('is_community')->orWhere('is_community', 0);
-            })
-            ->get(['id', 'heading', 'caption', 'body', 'media_meta']);
+        $allPublished = Post::publicFeed()->get(['id', 'heading', 'caption', 'body', 'media_meta']);
         $tagCounts = [];
         foreach ($allPublished as $p) {
             foreach ($p->tags_list as $t) {
@@ -102,8 +101,60 @@ class HomeController extends Controller
 
     public function search(Request $request)
     {
-        $tag = $request->query('tag') ?? $request->query('q');
-        return redirect()->route('trending', ['tag' => $tag]);
+        publish_matured_queued_posts();
+        $needle = ltrim(trim((string) ($request->query('q') ?? $request->query('tag') ?? '')), '#');
+        $posts = Post::publicFeed()->whereRaw('0=1')->paginate(12, ['*'], 'posts_page');
+        $blogs = Blog::whereRaw('0=1')->paginate(12, ['*'], 'blogs_page');
+        $tags = [];
+        if ($needle !== '') {
+            $like = '%' . addcslashes($needle, '%_\\') . '%';
+            $posts = Post::with(['blog.user'])->publicFeed()
+                ->where(function ($q) use ($like) {
+                    $q->where('heading', 'like', $like)
+                        ->orWhere('body', 'like', $like)
+                        ->orWhere('caption', 'like', $like)
+                        ->orWhere('quote_text', 'like', $like)
+                        ->orWhere('link_title', 'like', $like)
+                        ->orWhere('media_meta', 'like', $like);
+                })
+                ->orderByDesc('published_at')
+                ->paginate(12, ['*'], 'posts_page')
+                ->withQueryString();
+            $blogs = Blog::with('user')->where('status', 'active')
+                ->where(function ($q) use ($like) {
+                    $q->where('title', 'like', $like)
+                        ->orWhere('slug', 'like', $like)
+                        ->orWhere('bio', 'like', $like)
+                        ->orWhere('tagline', 'like', $like);
+                })
+                ->orderByDesc('id')
+                ->paginate(12, ['*'], 'blogs_page')
+                ->withQueryString();
+            $rows = Post::publicFeed()
+                ->where(function ($q) use ($like) {
+                    $q->where('media_meta', 'like', $like)
+                        ->orWhere('heading', 'like', $like)
+                        ->orWhere('body', 'like', $like)
+                        ->orWhere('caption', 'like', $like);
+                })
+                ->limit(300)
+                ->get(['heading', 'caption', 'body', 'quote_text', 'media_meta']);
+            foreach ($rows as $row) {
+                foreach ($row->tags_list as $tag) {
+                    if ($tag !== '' && str_contains($tag, strtolower($needle))) {
+                        $tags[$tag] = ($tags[$tag] ?? 0) + 1;
+                    }
+                }
+            }
+            arsort($tags);
+        }
+        return view('search', [
+            'query' => $needle,
+            'posts' => $posts,
+            'blogs' => $blogs,
+            'tags' => $tags,
+            'active_nav' => 'explore',
+        ]);
     }
 
     public function tag($tag)
@@ -125,6 +176,9 @@ class HomeController extends Controller
             })
             ->where(function($q) {
                 $q->whereNull('media_meta->is_community')->orWhere('media_meta->is_community', false);
+            })
+            ->when(\Illuminate\Support\Facades\Schema::hasColumn('posts', 'member_community_id'), function ($q) {
+                $q->whereNull('member_community_id');
             })
             ->orderBy('published_at', 'desc');
         if ($type === 'photo' || $type === 'image' || $type === 'photos' || $type === 'images') {
@@ -174,6 +228,9 @@ class HomeController extends Controller
             })
             ->where(function($q) {
                 $q->whereNull('media_meta->is_community')->orWhere('media_meta->is_community', false);
+            })
+            ->when(\Illuminate\Support\Facades\Schema::hasColumn('posts', 'member_community_id'), function ($q) {
+                $q->whereNull('member_community_id');
             });
 
         if ($selectedTag) {
@@ -194,7 +251,11 @@ class HomeController extends Controller
         $featuredBlogs = Blog::getFeaturedForDisplay();
 
         // Calculate REAL tag frequencies dynamically from all published posts
-        $allPublished = Post::where('status', 'published')->get(['id', 'heading', 'caption', 'body', 'quote_text', 'media_meta']);
+        $allPublished = Post::where('status', 'published')
+            ->when(\Illuminate\Support\Facades\Schema::hasColumn('posts', 'member_community_id'), function ($q) {
+                $q->whereNull('member_community_id');
+            })
+            ->get(['id', 'heading', 'caption', 'body', 'quote_text', 'media_meta']);
         $tagCounts = [];
         foreach ($allPublished as $p) {
             $tList = $p->tags_list;

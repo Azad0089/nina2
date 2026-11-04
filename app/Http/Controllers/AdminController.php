@@ -29,31 +29,168 @@ class AdminController extends Controller
     {
         $this->checkAdmin();
 
-        $section = $request->query('section', 'overview');
-        $allPosts = Post::with(['blog.user'])->orderBy('created_at', 'desc')->take(100)->get();
-        $allUsers = User::withCount(['blogs', 'referrals'])->with(['donations', 'logins'])->orderBy('created_at', 'desc')->get();
-        $allBlogs = Blog::with('user')->orderBy('created_at', 'desc')->get();
-        $reports = Report::with('reporter')->orderBy('created_at', 'desc')->get();
-        $tickets = SupportTicket::orderBy('created_at', 'desc')->get();
-        $verifications = Verification::with('user')->orderBy('created_at', 'desc')->get();
-        $donations = Donation::with('user')->orderBy('created_at', 'desc')->get();
-        $logins = UserLogin::with('user')->orderBy('logged_at', 'desc')->take(150)->get();
-        $promotions = Promotion::with(['user', 'post', 'blog'])->orderBy('created_at', 'desc')->get();
-        $allAds = Advertisement::orderBy('created_at', 'desc')->get();
+        $section = (string) $request->input('section', 'overview');
+        $perPage = max(10, min(100, (int) Setting::get('admin_list_per_page', 25)));
+        $q = trim((string) $request->query('q', ''));
+        $like = '%' . addcslashes($q, '%_\\') . '%';
+        $filter = (string) $request->query('filter', '');
+
+        $adminCounts = [
+            'users' => User::count(),
+            'blogs' => Blog::count(),
+            'posts' => Post::count(),
+            'pro_members' => User::where('badge_pro', 1)->count(),
+            'premium' => User::where('badge_pro', 1)->count(),
+            'premium_plus' => User::where('badge_vip', 1)->count(),
+            'badge_id' => User::where('badge_id', 1)->count(),
+            'badge_vip' => User::where('badge_vip', 1)->count(),
+            'referrers' => User::has('referrals')->count(),
+            'referral_signups' => User::whereNotNull('referred_by_user_id')->count(),
+            'featured_blogs' => Blog::where('is_featured', 1)->count(),
+            'open_reports' => Report::where('status', 'open')->count(),
+            'pending_verifications' => Verification::where('status', 'pending')->count(),
+            'donations_sum' => (float) Donation::where('status', 'confirmed')->sum('amount_usd'),
+            'donations_paid' => (float) Donation::whereIn('status', ['confirmed', 'finished'])->sum('amount_usd'),
+            'donations_paid_count' => Donation::whereIn('status', ['confirmed', 'finished'])->count(),
+            'donations_pending' => Donation::whereIn('status', ['pending', 'waiting', 'confirming'])->count(),
+            'open_tickets' => SupportTicket::where('status', 'open')->count(),
+            'ads' => Advertisement::count(),
+            'ads_active' => Advertisement::where('is_active', 1)->count(),
+            'ads_impressions' => (int) Advertisement::sum('impressions_count'),
+            'ads_clicks' => (int) Advertisement::sum('clicks_count'),
+            'login_rows' => UserLogin::count(),
+            'login_ips' => UserLogin::whereNotNull('ip_address')->distinct()->count('ip_address'),
+            'login_users' => UserLogin::whereNotNull('user_id')->distinct()->count('user_id'),
+        ];
+
+        $allPosts = collect();
+        $allUsers = collect();
+        $allBlogs = collect();
+        $reports = collect();
+        $tickets = collect();
+        $verifications = collect();
+        $donations = collect();
+        $logins = collect();
+        $promotions = collect();
+        $allAds = collect();
+
+        if (in_array($section, ['overview', 'posts', ''], true)) {
+            $posts = Post::with(['blog.user'])->orderByDesc('created_at');
+            if ($q !== '') {
+                $posts->where(function ($query) use ($like) {
+                    $query->where('heading', 'like', $like)
+                        ->orWhere('body', 'like', $like)
+                        ->orWhere('caption', 'like', $like)
+                        ->orWhere('id', ltrim($q, '#'));
+                });
+            }
+            $allPosts = $posts->paginate($perPage)->withQueryString();
+        }
+        if ($section === 'overview') {
+            $allUsers = User::orderByDesc('created_at')->limit(5)->get();
+        } elseif ($section === 'users' || $section === 'referrals') {
+            $users = User::withCount(['blogs', 'referrals'])->with(['donations', 'logins'])->orderByDesc('created_at');
+            if ($section === 'referrals') {
+                $users->has('referrals')->orderByDesc('referrals_count');
+            }
+            if ($q !== '') {
+                $users->where(function ($query) use ($like) {
+                    $query->where('username', 'like', $like)->orWhere('email', 'like', $like);
+                });
+            }
+            if ($filter === 'premium' || $filter === 'badge_pro') {
+                $users->where('badge_pro', 1);
+            } elseif ($filter === 'premium_plus' || $filter === 'badge_vip') {
+                $users->where('badge_vip', 1);
+            } elseif ($filter === 'badge_id') {
+                $users->where('badge_id', 1);
+            } elseif ($filter === 'referrers') {
+                $users->has('referrals');
+            }
+            $allUsers = $users->paginate($perPage)->withQueryString();
+        } elseif ($section === 'blogs') {
+            $blogs = Blog::with('user')->orderByDesc('created_at');
+            if ($q !== '') {
+                $blogs->where(function ($query) use ($like) {
+                    $query->where('title', 'like', $like)->orWhere('slug', 'like', $like);
+                });
+            }
+            $allBlogs = $blogs->paginate($perPage)->withQueryString();
+        } elseif ($section === 'reports') {
+            $rows = Report::with('reporter')->orderByDesc('created_at');
+            if ($q !== '') {
+                $rows->where(function ($query) use ($like) {
+                    $query->where('reason', 'like', $like)->orWhere('details', 'like', $like)->orWhere('target_type', 'like', $like);
+                });
+            }
+            $reports = $rows->paginate($perPage)->withQueryString();
+        } elseif ($section === 'support') {
+            $rows = SupportTicket::orderByDesc('created_at');
+            if ($q !== '') {
+                $rows->where(function ($query) use ($like) {
+                    $query->where('topic', 'like', $like)->orWhere('email', 'like', $like)->orWhere('message', 'like', $like)->orWhere('name', 'like', $like);
+                });
+            }
+            $tickets = $rows->paginate($perPage)->withQueryString();
+        } elseif ($section === 'verifications') {
+            $rows = Verification::with('user')->orderByDesc('created_at');
+            if ($q !== '') {
+                $rows->whereHas('user', function ($query) use ($like) {
+                    $query->where('username', 'like', $like)->orWhere('email', 'like', $like);
+                });
+            }
+            $verifications = $rows->paginate($perPage)->withQueryString();
+        } elseif ($section === 'donations') {
+            $rows = Donation::with('user')->orderByDesc('created_at');
+            if ($q !== '') {
+                $rows->where(function ($query) use ($like) {
+                    $query->where('status', 'like', $like)->orWhere('id', ltrim($q, '#'));
+                });
+            }
+            $donations = $rows->paginate($perPage)->withQueryString();
+        } elseif ($section === 'logins') {
+            $rows = UserLogin::with('user')->orderByDesc('logged_at');
+            if ($q !== '') {
+                $rows->where(function ($query) use ($like) {
+                    $query->where('ip_address', 'like', $like)
+                        ->orWhereHas('user', fn ($user) => $user->where('username', 'like', $like));
+                });
+            }
+            $logins = $rows->paginate($perPage)->withQueryString();
+        } elseif ($section === 'ads') {
+            $rows = Advertisement::orderByDesc('created_at');
+            if ($q !== '') {
+                $rows->where(function ($query) use ($like) {
+                    $query->where('title', 'like', $like)->orWhere('link_url', 'like', $like)->orWhere('sponsor_name', 'like', $like);
+                });
+            }
+            $allAds = $rows->paginate($perPage)->withQueryString();
+        }
+
         $heroSlides = hero_slides();
-
         $settings = Setting::pluck('value', 'key')->all();
-
         $title = ucfirst($section);
         $staticPageEditor = null;
+        $localeEditor = null;
         if ($section === 'pages') {
             $staticPageEditor = app(PageController::class)->editorState((string) $request->query('page', 'about'));
+        }
+        if ($section === 'languages') {
+            $code = strtolower(preg_replace('/[^a-z]/', '', (string) $request->query('lang', '')));
+            $packs = locale_packs();
+            $localeEditor = [
+                'code' => $code,
+                'pack' => $packs[$code] ?? ['name' => '', 'enabled' => 0, 'strings' => []],
+                'catalog' => translation_catalog(),
+                'packs' => $packs,
+                'default' => (string) Setting::get('default_locale', 'en'),
+            ];
         }
 
         return view('admin', compact(
             'section', 'allPosts', 'allUsers', 'allBlogs', 'reports', 'tickets',
             'verifications', 'donations', 'logins', 'promotions', 'allAds', 'heroSlides', 'settings', 'title',
-            'staticPageEditor'
+            'staticPageEditor', 'adminCounts', 'perPage', 'q', 'localeEditor'
         ));
     }
 
@@ -135,6 +272,56 @@ class AdminController extends Controller
         return $this->index($request);
     }
 
+    public function languages(Request $request)
+    {
+        $request->merge(['section' => 'languages']);
+        return $this->index($request);
+    }
+
+    public function saveLanguage(Request $request)
+    {
+        $this->checkAdmin();
+        $code = strtolower(preg_replace('/[^a-z]/', '', (string) $request->input('code', '')));
+        if ($code === '' || strlen($code) > 8) {
+            return redirect()->route('admin.languages')->with('error', 'Use a short language code such as es or fr.');
+        }
+        $packs = locale_packs();
+        if ($request->input('delete') === '1') {
+            if ($code === 'en') {
+                return redirect()->route('admin.languages')->with('error', 'English stays on the site.');
+            }
+            unset($packs[$code]);
+            Setting::set('locale_packs', json_encode($packs));
+            if (Setting::get('default_locale', 'en') === $code) {
+                Setting::set('default_locale', 'en');
+            }
+            return redirect()->route('admin.languages')->with('success', 'Language removed. The site falls back to English.');
+        }
+        $strings = [];
+        foreach (preg_split('/\r\n|\r|\n/', (string) $request->input('strings', '')) as $line) {
+            if (!str_contains($line, '=')) {
+                continue;
+            }
+            [$key, $value] = explode('=', $line, 2);
+            $key = trim($key);
+            if ($key !== '') {
+                $strings[$key] = trim($value);
+            }
+        }
+        $packs[$code] = [
+            'name' => mb_substr(trim((string) $request->input('name', strtoupper($code))), 0, 40) ?: strtoupper($code),
+            'enabled' => $request->input('enabled') === '1' ? 1 : 0,
+            'strings' => $strings,
+        ];
+        Setting::set('locale_packs', json_encode($packs, JSON_UNESCAPED_UNICODE));
+        $default = strtolower((string) $request->input('default_locale', Setting::get('default_locale', 'en')));
+        if ($default !== 'en' && (empty($packs[$default]['enabled']))) {
+            $default = 'en';
+        }
+        Setting::set('default_locale', $default === '' ? 'en' : $default);
+        return redirect()->route('admin.languages', ['lang' => $code])->with('success', 'Language saved.');
+    }
+
     public function savePage(Request $request)
     {
         $this->checkAdmin();
@@ -184,6 +371,10 @@ class AdminController extends Controller
             'enable_adult_warning',
             'feed_text_excerpt_limit', 'feed_caption_excerpt_limit',
             'post_max_text_length', 'post_max_caption_length',
+            'max_extra_blogs', 'max_user_communities', 'member_communities_per_page', 'admin_list_per_page',
+            'classifieds_enabled', 'classifieds_max_tags', 'classifieds_per_page', 'classifieds_expire_months',
+            'classifieds_title_min', 'classifieds_title_max', 'classifieds_body_min', 'classifieds_body_max',
+            'classifieds_tags_min', 'classifieds_tags_max', 'default_locale',
             'premium_points_monthly', 'premium_plus_points_monthly',
             'community_title', 'community_tagline', 'community_bio',
             'community_avatar', 'community_cover',
@@ -209,6 +400,9 @@ class AdminController extends Controller
         $settingsToSave['welcome_email_enabled'] = ($request->input('welcome_email_enabled') == '1') ? '1' : '0';
         $settingsToSave['email_verification_enabled'] = ($request->input('email_verification_enabled') == '1') ? '1' : '0';
         $settingsToSave['admin_notify_signup'] = ($request->input('admin_notify_signup') == '1') ? '1' : '0';
+        if ($request->exists('classifieds_enabled')) {
+            $settingsToSave['classifieds_enabled'] = ($request->input('classifieds_enabled') == '1') ? '1' : '0';
+        }
 
         if (array_key_exists('max_message_file_mb', $settingsToSave)) {
             $settingsToSave['max_message_file_mb'] = (string) max(0, min(500, (float) $settingsToSave['max_message_file_mb']));
@@ -500,7 +694,24 @@ class AdminController extends Controller
         $ticket->status = 'replied';
         $ticket->save();
 
-        return redirect()->back()->with('success', "Reply saved for ticket #{$ticket->id}.");
+        $mailed = false;
+        $to = trim((string) $ticket->email);
+        if ($to !== '' && function_exists('send_smtp_email')) {
+            $site = site_name();
+            $body = '<p>Hello ' . e($ticket->name ?: 'there') . ',</p>'
+                . '<p>A reply was added to your support request' . ($ticket->topic ? ' (' . e($ticket->topic) . ')' : '') . ':</p>'
+                . '<blockquote>' . nl2br(e((string) $ticket->admin_reply)) . '</blockquote>'
+                . '<p>' . e($site) . '</p>';
+            try {
+                $mailed = (bool) send_smtp_email($to, 'Reply to your support request', $body);
+            } catch (\Throwable $e) {
+                $mailed = false;
+            }
+        }
+
+        return redirect()->back()->with('success', $mailed
+            ? "Reply saved and emailed for ticket #{$ticket->id}."
+            : "Reply saved for ticket #{$ticket->id}. Email was not sent, so the reply is stored on the ticket.");
     }
 
     public function resolveReport($id)

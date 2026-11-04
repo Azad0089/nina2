@@ -79,6 +79,7 @@ class DashboardController extends Controller implements HasMiddleware
 
         $mediaPath = null;
         $mediaType = null;
+        $videoEmbedMeta = null;
 
         // Handle MP4 video or photo upload
         // Handle media upload
@@ -160,6 +161,16 @@ class DashboardController extends Controller implements HasMiddleware
                 ->withInput()
                 ->with('error', 'File was uploaded but could not be found in storage.');
         }
+    } elseif ($type === 'video' && trim((string) $request->input('video_url')) !== '') {
+        $embed = video_embed_from_url((string) $request->input('video_url'));
+        if (!$embed) {
+            return redirect()->back()->withInput()->with('error', 'That video link is not supported. Paste a page URL from a major tube site, YouTube, or Vimeo.');
+        }
+        $mediaPath = $embed['source_url'];
+        $mediaType = $embed['kind'] === 'file' ? 'video' : 'embed';
+        $videoEmbedMeta = $embed;
+    } elseif ($type === 'video' && $action !== 'draft') {
+        return redirect()->back()->withInput()->with('error', 'Upload a video file or paste a video page URL.');
     } elseif ($type === 'photo' || $type === 'photos' || $type === 'image' || $type === 'images') {
             $type = 'photo';
             $mediaType = 'photo';
@@ -225,7 +236,18 @@ class DashboardController extends Controller implements HasMiddleware
             'caption' => $caption,
             'media_path' => $mediaPath ?: $request->input('media_url'),
             'media_type' => $mediaType,
-            'media_meta' => !empty($tagArray) ? ['tags' => $tagArray] : null,
+            'media_meta' => (function () use ($tagArray, $videoEmbedMeta) {
+                $meta = [];
+                if (!empty($tagArray)) {
+                    $meta['tags'] = $tagArray;
+                }
+                if (!empty($videoEmbedMeta)) {
+                    $meta['embed_url'] = $videoEmbedMeta['embed_url'];
+                    $meta['embed_kind'] = $videoEmbedMeta['kind'];
+                    $meta['media_type'] = $videoEmbedMeta['kind'] === 'file' ? 'video' : 'embed';
+                }
+                return $meta ?: null;
+            })(),
             'quote_text' => $request->input('quote'),
             'quote_source' => $request->input('source'),
             'link_url' => $request->input('url'),
@@ -375,6 +397,18 @@ class DashboardController extends Controller implements HasMiddleware
                     }
                 }
             }
+        } elseif ($post->type === 'video' && trim((string) $request->input('video_url')) !== '') {
+            $embed = video_embed_from_url((string) $request->input('video_url'));
+            if (!$embed) {
+                return redirect()->back()->withInput()->with('error', 'That video link is not supported. Paste a page URL from a major tube site, YouTube, or Vimeo.');
+            }
+            $post->media_path = $embed['source_url'];
+            $post->media_type = $embed['kind'] === 'file' ? 'video' : 'embed';
+            $meta = is_array($post->media_meta) ? $post->media_meta : [];
+            $meta['embed_url'] = $embed['embed_url'];
+            $meta['embed_kind'] = $embed['kind'];
+            $meta['media_type'] = $post->media_type;
+            $post->media_meta = $meta;
         } elseif ($request->filled('media_url')) {
             $post->media_path = $request->input('media_url');
         }
@@ -446,6 +480,13 @@ class DashboardController extends Controller implements HasMiddleware
     public function storeNewBlog(Request $request)
     {
         $user = Auth::user();
+        $extraLimit = (int) Setting::get('max_extra_blogs', 0);
+        if ($extraLimit > 0) {
+            $extraCount = Blog::where('user_id', $user->id)->where('is_main', 0)->count();
+            if ($extraCount >= $extraLimit) {
+                return redirect()->back()->with('error', 'You can create up to ' . $extraLimit . ' additional blogs.');
+            }
+        }
         $request->validate([
             'slug' => 'required|alpha_dash|min:3|max:30|unique:blogs,slug',
             'title' => 'required|string|max:120',

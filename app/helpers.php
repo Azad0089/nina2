@@ -765,14 +765,19 @@ if (!function_exists('time_ago')) {
 
 if (!function_exists('nav_items')) {
     function nav_items() {
-        return [
-            ['href' => '/', 'label' => 'Explore', 'icon' => 'compass', 'key' => 'explore'],
-            ['href' => '/community', 'label' => 'Community', 'icon' => 'users', 'key' => 'community'],
-            ['href' => '/trending', 'label' => 'Trending', 'icon' => 'flame', 'key' => 'trending'],
-            ['href' => '/advertising', 'label' => 'Advertising', 'icon' => 'megaphone', 'key' => 'advertising'],
-            ['href' => '/premium', 'label' => 'Premium', 'icon' => 'crown', 'key' => 'premium'],
-            ['href' => '/support', 'label' => 'Support', 'icon' => 'help', 'key' => 'support'],
+        $items = [
+            ['href' => '/', 'label' => t('nav.explore'), 'icon' => 'compass', 'key' => 'explore'],
+            ['href' => '/community', 'label' => t('nav.community'), 'icon' => 'users', 'key' => 'community'],
+            ['href' => '/communities', 'label' => t('nav.member_communities'), 'icon' => 'users', 'key' => 'member-communities'],
+            ['href' => '/trending', 'label' => t('nav.trending'), 'icon' => 'flame', 'key' => 'trending'],
         ];
+        if (classifieds_enabled()) {
+            $items[] = ['href' => '/classifieds', 'label' => t('nav.classifieds'), 'icon' => 'megaphone', 'key' => 'classifieds'];
+        }
+        $items[] = ['href' => '/advertising', 'label' => t('nav.advertising'), 'icon' => 'megaphone', 'key' => 'advertising'];
+        $items[] = ['href' => '/premium', 'label' => t('nav.premium'), 'icon' => 'crown', 'key' => 'premium'];
+        $items[] = ['href' => '/support', 'label' => t('nav.support'), 'icon' => 'help', 'key' => 'support'];
+        return $items;
     }
 }
 
@@ -1403,6 +1408,8 @@ HTML;
         return send_smtp_email($recipientUser->email, $subject, $bodyHtml);
     }
 }
+
+require_once __DIR__ . '/platform_extensions.php';
 
 
 

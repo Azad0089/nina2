@@ -12,6 +12,8 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DonationController;
 use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\CommunityController;
+use App\Http\Controllers\MemberCommunityController;
+use App\Http\Controllers\ClassifiedController;
 use App\Http\Controllers\VerificationController;
 
 /*
@@ -40,6 +42,25 @@ Route::get('/community.php', [CommunityController::class, 'index']);
 Route::post('/community/join', [CommunityController::class, 'join'])->name('community.join');
 Route::post('/community/post', [CommunityController::class, 'storePost'])->name('community.post.store');
 Route::get('/search', [HomeController::class, 'search'])->name('search');
+Route::get('/communities', [MemberCommunityController::class, 'index'])->name('member-communities.index');
+Route::get('/communities/{slug}', [MemberCommunityController::class, 'show'])->name('member-community.show');
+Route::post('/communities/{slug}/join', [MemberCommunityController::class, 'join'])->middleware('auth')->name('member-community.join');
+Route::post('/communities/{slug}/leave', [MemberCommunityController::class, 'leave'])->middleware('auth')->name('member-community.leave');
+Route::post('/communities/{slug}/approve/{userId}', [MemberCommunityController::class, 'approve'])->middleware('auth')->name('member-community.approve');
+Route::post('/communities/{slug}/invite', [MemberCommunityController::class, 'invite'])->middleware('auth')->name('member-community.invite');
+Route::post('/communities/{slug}/post', [MemberCommunityController::class, 'storePost'])->middleware('auth')->name('member-community.post');
+Route::post('/communities/{slug}/pin/{postId}', [MemberCommunityController::class, 'pin'])->middleware('auth')->name('member-community.pin');
+Route::get('/classifieds', [ClassifiedController::class, 'index'])->name('classifieds.index');
+Route::get('/classifieds/{id}', [ClassifiedController::class, 'show'])->whereNumber('id')->name('classifieds.show');
+Route::post('/classifieds/{id}/message', [ClassifiedController::class, 'message'])->whereNumber('id')->name('classifieds.message');
+Route::post('/classifieds/{id}/report', [ClassifiedController::class, 'report'])->whereNumber('id')->name('classifieds.report');
+Route::get('/language/{code}', function (string $code) {
+    $code = strtolower(preg_replace('/[^a-z]/', '', $code));
+    if (!isset(enabled_locales()[$code])) {
+        $code = 'en';
+    }
+    return redirect()->back(fallback: url('/'))->cookie('nina_locale', $code, 60 * 24 * 365);
+})->name('locale.switch');
 Route::get('/tag/{tag}', [HomeController::class, 'tag'])->name('tag.show');
 Route::get('/featured-blogs', [BlogController::class, 'featuredList'])->name('featured.blogs');
 Route::get('/featured-blogs.php', [BlogController::class, 'featuredList']);
@@ -193,6 +214,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard/queue', [DashboardController::class, 'queue'])->name('dashboard.queue');
     Route::post('/dashboard/queue/{id}/publish', [DashboardController::class, 'publishQueued'])->name('dashboard.queue.publish');
     Route::post('/dashboard/queue/{id}/delete', [DashboardController::class, 'deleteQueued'])->name('dashboard.queue.delete');
+    Route::get('/dashboard/communities', [MemberCommunityController::class, 'manage'])->name('dashboard.communities');
+    Route::post('/dashboard/communities', [MemberCommunityController::class, 'store'])->name('dashboard.communities.store');
+    Route::post('/dashboard/communities/{id}', [MemberCommunityController::class, 'update'])->name('dashboard.communities.update');
+    Route::post('/dashboard/communities/{id}/delete', [MemberCommunityController::class, 'destroy'])->name('dashboard.communities.delete');
+    Route::get('/dashboard/classifieds', [ClassifiedController::class, 'manage'])->name('dashboard.classifieds');
+    Route::post('/dashboard/classifieds', [ClassifiedController::class, 'store'])->name('dashboard.classifieds.store');
+    Route::post('/dashboard/classifieds/{id}', [ClassifiedController::class, 'update'])->name('dashboard.classifieds.update');
+    Route::post('/dashboard/classifieds/{id}/delete', [ClassifiedController::class, 'destroy'])->name('dashboard.classifieds.delete');
     Route::get('/dashboard/blogs', [DashboardController::class, 'blogs'])->name('dashboard.blogs');
     Route::get('/dashboard/blogs.php', [DashboardController::class, 'blogs']);
     Route::post('/dashboard/blogs', [DashboardController::class, 'updateBlog'])->name('dashboard.blogs.update');
@@ -230,6 +259,8 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::get('/support.php', [AdminController::class, 'support']);
     Route::get('/settings', [AdminController::class, 'settings'])->name('admin.settings');
     Route::post('/settings/save', [AdminController::class, 'saveSettings'])->name('admin.settings.save');
+    Route::get('/languages', [AdminController::class, 'languages'])->name('admin.languages');
+    Route::post('/languages/save', [AdminController::class, 'saveLanguage'])->name('admin.languages.save');
     Route::get('/pages', [AdminController::class, 'pages'])->name('admin.pages');
     Route::post('/pages/save', [AdminController::class, 'savePage'])->name('admin.pages.save');
     Route::post('/smtp/test', [AdminController::class, 'testSmtp'])->name('admin.smtp.test');
@@ -276,6 +307,7 @@ Route::get('/sitemap.xml', function () {
         url('/explore'),
         url('/trending'),
         url('/community'),
+        url('/communities'),
         url('/advertising'),
         url('/premium'),
         url('/about'),
@@ -294,6 +326,15 @@ Route::get('/sitemap.xml', function () {
 
     foreach ($blogs as $b) {
         $xml .= '  <url><loc>' . htmlspecialchars(route('blog.show', ['slug' => $b->slug])) . '</loc><lastmod>' . $b->updated_at->toAtomString() . '</lastmod><changefreq>daily</changefreq><priority>' . ($b->is_main ? '0.9' : '0.7') . '</priority></url>' . "\n";
+    }
+
+    if (function_exists('classifieds_enabled') && classifieds_enabled()) {
+        $xml .= '  <url><loc>' . htmlspecialchars(url('/classifieds')) . '</loc><changefreq>daily</changefreq><priority>0.7</priority></url>' . "\n";
+        try {
+            foreach (\App\Models\ClassifiedAd::live()->orderByDesc('id')->limit(1000)->get(['id', 'updated_at']) as $ad) {
+                $xml .= '  <url><loc>' . htmlspecialchars(route('classifieds.show', ['id' => $ad->id])) . '</loc><lastmod>' . optional($ad->updated_at)->toAtomString() . '</lastmod><changefreq>weekly</changefreq><priority>0.5</priority></url>' . "\n";
+            }
+        } catch (\Throwable $e) {}
     }
 
     foreach ($posts as $post) {

@@ -115,7 +115,7 @@
               {!! icon('users') !!}
               <span>Users</span>
             </span>
-            <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ ($section ?? '') === 'users' ? 'bg-pink-500/20 text-pink-300' : 'bg-white/10 text-slate-300' }}">{{ $allUsers->count() }}</span>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ ($section ?? '') === 'users' ? 'bg-pink-500/20 text-pink-300' : 'bg-white/10 text-slate-300' }}">{{ $adminCounts['users'] ?? 0 }}</span>
           </a>
 
           <a href="{{ route('admin.blogs') }}" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition {{ ($section ?? '') === 'blogs' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' }}">
@@ -123,7 +123,7 @@
               {!! icon('compass') !!}
               <span>Unlimited Blogs</span>
             </span>
-            <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ ($section ?? '') === 'blogs' ? 'bg-pink-500/20 text-pink-300' : 'bg-white/10 text-slate-300' }}">{{ $allBlogs->count() }}</span>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ ($section ?? '') === 'blogs' ? 'bg-pink-500/20 text-pink-300' : 'bg-white/10 text-slate-300' }}">{{ $adminCounts['blogs'] ?? 0 }}</span>
           </a>
 
           <a href="{{ route('admin.posts') }}" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition {{ ($section ?? '') === 'posts' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' }}">
@@ -131,7 +131,7 @@
               {!! icon('list') !!}
               <span>Platform Posts</span>
             </span>
-            <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ ($section ?? '') === 'posts' ? 'bg-pink-500/20 text-pink-300' : 'bg-white/10 text-slate-300' }}">{{ $allPosts->count() }}</span>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ ($section ?? '') === 'posts' ? 'bg-pink-500/20 text-pink-300' : 'bg-white/10 text-slate-300' }}">{{ $adminCounts['posts'] ?? 0 }}</span>
           </a>
 
           <div class="pt-4 px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">Trust, Safety & Revenue</div>
@@ -141,7 +141,7 @@
               {!! icon('verified') !!}
               <span>ID Approvals</span>
             </span>
-            @php $pendingVerifs = $verifications->where('status','pending')->count(); @endphp
+            @php $pendingVerifs = $adminCounts['pending_verifications'] ?? 0; @endphp
             @if($pendingVerifs > 0)
               <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 animate-pulse">{{ $pendingVerifs }}</span>
             @else
@@ -154,7 +154,7 @@
               {!! icon('crown') !!}
               <span>Crypto Revenue</span>
             </span>
-            <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300">${{ number_format($donations->where('status','confirmed')->sum('amount_usd'), 0) }}</span>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300">${{ number_format($adminCounts['donations_sum'] ?? 0, 0) }}</span>
           </a>
 
           <a href="{{ route('admin.referrals') }}" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition {{ ($section ?? '') === 'referrals' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' }}">
@@ -162,7 +162,7 @@
               {!! icon('users') !!}
               <span>Referral Network</span>
             </span>
-            <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-white/10 text-slate-300">{{ $allUsers->where('referrals_count', '>', 0)->count() }}</span>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-white/10 text-slate-300">{{ $adminCounts['referrers'] ?? 0 }}</span>
           </a>
 
           <a href="{{ route('admin.reports') }}" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition {{ ($section ?? '') === 'reports' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' }}">
@@ -170,7 +170,7 @@
               {!! icon('flag') !!}
               <span>Reports</span>
             </span>
-            @php $openReports = $reports->where('status','open')->count(); @endphp
+            @php $openReports = $adminCounts['open_reports'] ?? 0; @endphp
             @if($openReports > 0)
               <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300">{{ $openReports }}</span>
             @else
@@ -183,7 +183,7 @@
               {!! icon('mail') !!}
               <span>Support Desk</span>
             </span>
-            <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-white/10 text-slate-300">{{ $tickets->where('status','open')->count() }}</span>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-white/10 text-slate-300">{{ $adminCounts['open_tickets'] ?? 0 }}</span>
           </a>
 
           <a href="{{ route('admin.logins') }}" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition {{ ($section ?? '') === 'logins' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' }}">
@@ -198,7 +198,7 @@
               {!! icon('megaphone') !!}
               <span>Advertisements</span>
             </span>
-            <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ ($section ?? '') === 'ads' ? 'bg-pink-500/20 text-pink-300' : 'bg-white/10 text-slate-300' }}">{{ isset($allAds) ? $allAds->count() : 0 }}</span>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ ($section ?? '') === 'ads' ? 'bg-pink-500/20 text-pink-300' : 'bg-white/10 text-slate-300' }}">{{ $adminCounts['ads'] ?? 0 }}</span>
           </a>
 
           <a href="{{ route('admin.slider') }}" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition {{ ($section ?? '') === 'slider' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' }}">
@@ -207,6 +207,13 @@
               <span>Hero Slider</span>
             </span>
             <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ ($section ?? '') === 'slider' ? 'bg-pink-500/20 text-pink-300' : 'bg-white/10 text-slate-300' }}">{{ isset($heroSlides) ? count($heroSlides) : 0 }}</span>
+          </a>
+
+          <a href="{{ route('admin.languages') }}" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition {{ ($section ?? '') === 'languages' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' }}">
+            <span class="flex items-center gap-3">
+              {!! icon('list') !!}
+              <span>Languages</span>
+            </span>
           </a>
 
           <a href="{{ route('admin.pages') }}" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition {{ ($section ?? '') === 'pages' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' }}">
@@ -280,16 +287,16 @@
       <!-- QUICK SUBNAV TABS -->
       <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-6 text-sm font-semibold custom-scrollbar">
         <a href="{{ route('admin') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'overview' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Overview</a>
-        <a href="{{ route('admin.users') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'users' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Users ({{ $allUsers->count() }})</a>
-        <a href="{{ route('admin.blogs') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'blogs' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Blogs ({{ $allBlogs->count() }})</a>
-        <a href="{{ route('admin.posts') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'posts' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Posts ({{ $allPosts->count() }})</a>
-        <a href="{{ route('admin.ads') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'ads' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Ads ({{ isset($allAds) ? $allAds->count() : 0 }})</a>
+        <a href="{{ route('admin.users') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'users' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Users ({{ $adminCounts['users'] ?? 0 }})</a>
+        <a href="{{ route('admin.blogs') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'blogs' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Blogs ({{ $adminCounts['blogs'] ?? 0 }})</a>
+        <a href="{{ route('admin.posts') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'posts' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Posts ({{ $adminCounts['posts'] ?? 0 }})</a>
+        <a href="{{ route('admin.ads') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'ads' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Ads ({{ $adminCounts['ads'] ?? 0 }})</a>
         <a href="{{ route('admin.slider') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'slider' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Hero Slider ({{ isset($heroSlides) ? count($heroSlides) : 0 }})</a>
-        <a href="{{ route('admin.verifications') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'verifications' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">ID Approvals ({{ $verifications->where('status','pending')->count() }})</a>
-        <a href="{{ route('admin.donations') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'donations' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Donations (${{ number_format($donations->where('status','confirmed')->sum('amount_usd'), 0) }})</a>
-        <a href="{{ route('admin.referrals') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'referrals' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Referrals ({{ $allUsers->where('referrals_count', '>', 0)->count() }})</a>
-        <a href="{{ route('admin.reports') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'reports' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Reports ({{ $reports->where('status','open')->count() }})</a>
-        <a href="{{ route('admin.support') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'support' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Support ({{ $tickets->where('status','open')->count() }})</a>
+        <a href="{{ route('admin.verifications') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'verifications' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">ID Approvals ({{ $adminCounts['pending_verifications'] ?? 0 }})</a>
+        <a href="{{ route('admin.donations') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'donations' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Donations (${{ number_format($adminCounts['donations_sum'] ?? 0, 0) }})</a>
+        <a href="{{ route('admin.referrals') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'referrals' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Referrals ({{ $adminCounts['referrers'] ?? 0 }})</a>
+        <a href="{{ route('admin.reports') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'reports' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Reports ({{ $adminCounts['open_reports'] ?? 0 }})</a>
+        <a href="{{ route('admin.support') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'support' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Support ({{ $adminCounts['open_tickets'] ?? 0 }})</a>
         <a href="{{ route('admin.logins') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'logins' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Security & IPs</a>
         <a href="{{ route('admin.pages') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'pages' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Static Pages</a>
         <a href="{{ route('admin.settings') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'settings' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Platform Settings</a>
@@ -321,7 +328,7 @@
             <span>Total Posts</span>
             <span class="text-pink-400">{!! icon('list') !!}</span>
           </div>
-          <div class="text-2xl font-display font-black text-white group-hover:text-pink-400 transition">{{ $allPosts->count() }}</div>
+          <div class="text-2xl font-display font-black text-white group-hover:text-pink-400 transition">{{ $adminCounts['posts'] ?? 0 }}</div>
           <div class="text-[11px] text-slate-400 mt-1">Platform-wide</div>
         </div>
 
@@ -330,8 +337,8 @@
             <span>Members</span>
             <span class="text-cyan-400">{!! icon('users') !!}</span>
           </div>
-          <div class="text-2xl font-display font-black text-white group-hover:text-cyan-400 transition">{{ $allUsers->count() }}</div>
-          <div class="text-[11px] text-cyan-400 mt-1 font-semibold">{{ $allUsers->where('badge_pro', 1)->count() }} Pro Members</div>
+          <div class="text-2xl font-display font-black text-white group-hover:text-cyan-400 transition">{{ $adminCounts['users'] ?? 0 }}</div>
+          <div class="text-[11px] text-cyan-400 mt-1 font-semibold">{{ $adminCounts['pro_members'] ?? 0 }} Pro Members</div>
         </div>
 
         <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-4 shadow-lg hover:border-purple-500/30 transition group">
@@ -339,8 +346,8 @@
             <span>Unlimited Blogs</span>
             <span class="text-purple-400">{!! icon('compass') !!}</span>
           </div>
-          <div class="text-2xl font-display font-black text-white group-hover:text-purple-400 transition">{{ $allBlogs->count() }}</div>
-          <div class="text-[11px] text-slate-400 mt-1">{{ $allBlogs->where('is_featured', 1)->count() }} Featured</div>
+          <div class="text-2xl font-display font-black text-white group-hover:text-purple-400 transition">{{ $adminCounts['blogs'] ?? 0 }}</div>
+          <div class="text-[11px] text-slate-400 mt-1">{{ $adminCounts['featured_blogs'] ?? 0 }} Featured</div>
         </div>
 
         <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-4 shadow-lg hover:border-rose-500/30 transition group">
@@ -348,7 +355,7 @@
             <span>Open Reports</span>
             <span class="text-rose-400">{!! icon('flag') !!}</span>
           </div>
-          <div class="text-2xl font-display font-black text-white group-hover:text-rose-400 transition">{{ $reports->where('status', 'open')->count() }}</div>
+          <div class="text-2xl font-display font-black text-white group-hover:text-rose-400 transition">{{ $adminCounts['open_reports'] ?? 0 }}</div>
           <div class="text-[11px] text-slate-400 mt-1">Requires action</div>
         </div>
 
@@ -357,7 +364,7 @@
             <span>ID Approvals</span>
             <span class="text-amber-400">{!! icon('verified') !!}</span>
           </div>
-          <div class="text-2xl font-display font-black text-white group-hover:text-amber-400 transition">{{ $verifications->where('status', 'pending')->count() }}</div>
+          <div class="text-2xl font-display font-black text-white group-hover:text-amber-400 transition">{{ $adminCounts['pending_verifications'] ?? 0 }}</div>
           <div class="text-[11px] text-amber-400 mt-1 font-semibold">Pending Review</div>
         </div>
 
@@ -366,7 +373,7 @@
             <span>Crypto Raised</span>
             <span class="text-emerald-400">{!! icon('crown') !!}</span>
           </div>
-          <div class="text-2xl font-display font-black text-white group-hover:text-emerald-400 transition">${{ number_format($donations->where('status', 'confirmed')->sum('amount_usd'), 0) }}</div>
+          <div class="text-2xl font-display font-black text-white group-hover:text-emerald-400 transition">${{ number_format($adminCounts['donations_sum'] ?? 0, 0) }}</div>
           <div class="text-[11px] text-emerald-400 mt-1 font-semibold">Confirmed USD</div>
         </div>
       </div>
@@ -382,7 +389,7 @@
                   <span class="text-amber-400">{!! icon('verified') !!}</span>
                   <span>ID Verifications</span>
                 </h3>
-                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300">{{ $verifications->where('status','pending')->count() }} Pending</span>
+                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300">{{ $adminCounts['pending_verifications'] ?? 0 }} Pending</span>
               </div>
               <p class="text-sm text-slate-300 mb-4 leading-relaxed">
                 Creators submit legal identification to earn the Identity Verified badge and build subscriber trust.
@@ -401,7 +408,7 @@
                   <span class="text-rose-400">{!! icon('flag') !!}</span>
                   <span>Content Moderation</span>
                 </h3>
-                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300">{{ $reports->where('status','open')->count() }} Open</span>
+                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300">{{ $adminCounts['open_reports'] ?? 0 }} Open</span>
               </div>
               <p class="text-sm text-slate-300 mb-4 leading-relaxed">
                 Community member reports on posts, blogs, copyright, or terms of service violations.
@@ -500,34 +507,17 @@
             </div>
             <div class="flex items-center gap-2">
               <span class="text-xs font-bold text-slate-400 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
-                Total Accounts: <span class="text-pink-400 font-bold">{{ $allUsers->count() }}</span>
+                Total Accounts: <span class="text-pink-400 font-bold">{{ $adminCounts['users'] ?? 0 }}</span>
               </span>
             </div>
           </div>
 
           <!-- Quick Filter Buttons -->
+          @include('admin.partials.list-tools', ['list' => $allUsers, 'action' => route('admin.users')])
           <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-6 border-b border-white/10 text-xs font-semibold custom-scrollbar" id="userFilterTabs">
-            <button type="button" onclick="filterUsers('all')" class="user-tab-btn active px-3 py-1.5 rounded-lg bg-pink-600 text-white font-bold transition shadow-md shadow-pink-600/30" data-filter="all">
-              All Accounts ({{ $allUsers->count() }})
-            </button>
-            <button type="button" onclick="filterUsers('premium')" class="user-tab-btn px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 font-bold transition" data-filter="premium">
-              💎 Premium ({{ $allUsers->filter(fn($u) => $u->plan === 'premium')->count() }})
-            </button>
-            <button type="button" onclick="filterUsers('premium_plus')" class="user-tab-btn px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 font-bold transition" data-filter="premium_plus">
-              ⚡ Premium+ ({{ $allUsers->filter(fn($u) => $u->plan === 'premium_plus')->count() }})
-            </button>
-            <button type="button" onclick="filterUsers('badge_pro')" class="user-tab-btn px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 font-bold transition" data-filter="badge_pro">
-              🛡️ PRO Badge ({{ $allUsers->where('badge_pro', 1)->count() }})
-            </button>
-            <button type="button" onclick="filterUsers('badge_id')" class="user-tab-btn px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 font-bold transition" data-filter="badge_id">
-              ✓ ID Verified ({{ $allUsers->where('badge_id', 1)->count() }})
-            </button>
-            <button type="button" onclick="filterUsers('badge_vip')" class="user-tab-btn px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 font-bold transition" data-filter="badge_vip">
-              👑 VIP Badge ({{ $allUsers->where('badge_vip', 1)->count() }})
-            </button>
-            <button type="button" onclick="filterUsers('referrers')" class="user-tab-btn px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 font-bold transition" data-filter="referrers">
-              👥 Referrers ({{ $allUsers->where('referrals_count', '>', 0)->count() }})
-            </button>
+            @foreach(['' => 'All Accounts ('.($adminCounts['users'] ?? 0).')', 'premium' => 'Premium ('.($adminCounts['premium'] ?? 0).')', 'premium_plus' => 'Premium+ ('.($adminCounts['premium_plus'] ?? 0).')', 'badge_pro' => 'PRO Badge ('.($adminCounts['pro_members'] ?? 0).')', 'badge_id' => 'ID Verified ('.($adminCounts['badge_id'] ?? 0).')', 'badge_vip' => 'VIP Badge ('.($adminCounts['badge_vip'] ?? 0).')', 'referrers' => 'Referrers ('.($adminCounts['referrers'] ?? 0).')'] as $filterKey => $filterLabel)
+              <a href="{{ route('admin.users', array_filter(['filter' => $filterKey, 'q' => request('q')])) }}" class="px-3 py-1.5 rounded-lg font-bold transition {{ request('filter', '') === $filterKey ? 'bg-pink-600 text-white shadow-md shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">{{ $filterLabel }}</a>
+            @endforeach
           </div>
 
           <div class="overflow-x-auto">
@@ -848,10 +838,11 @@
 
       <!-- ================= SECTION: REFERRAL NETWORK ================= -->
       @elseif(($section ?? '') === 'referrals')
+        @include('admin.partials.list-tools', ['list' => $allUsers, 'action' => route('admin.referrals')])
         <div class="space-y-6">
           @php
-            $referrers = $allUsers->where('referrals_count', '>', 0)->sortByDesc('referrals_count');
-            $totalReferrals = $allUsers->sum('referrals_count');
+            $referrers = $allUsers;
+            $totalReferrals = $adminCounts['referral_signups'] ?? 0;
             $bountyPerRef = (int)($settings['referral_reward_points'] ?? 100);
             $totalPointsDistributed = $totalReferrals * $bountyPerRef;
           @endphp
@@ -881,7 +872,7 @@
                 <span>Active Referrers</span>
                 <span class="text-cyan-400">⚡</span>
               </div>
-              <div class="text-2xl font-display font-black text-cyan-400">{{ $referrers->count() }}</div>
+              <div class="text-2xl font-display font-black text-cyan-400">{{ $adminCounts['referrers'] ?? 0 }}</div>
               <div class="text-[11px] text-slate-400 mt-1">Users who brought new members</div>
             </div>
 
@@ -903,7 +894,7 @@
                 <p class="text-xs text-slate-400 mt-1">Audit who has referred users to the platform and exactly how many reward points they earned.</p>
               </div>
               <span class="text-xs font-bold text-slate-400 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
-                {{ $referrers->count() }} Active Affiliates
+                {{ $adminCounts['referrers'] ?? 0 }} Active Affiliates
               </span>
             </div>
 
@@ -987,6 +978,7 @@
 
       <!-- ================= SECTION: BLOGS ================= -->
       @elseif(($section ?? '') === 'blogs')
+        @include('admin.partials.list-tools', ['list' => $allBlogs, 'action' => route('admin.blogs')])
         <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-6 shadow-xl">
           <div class="flex items-center justify-between mb-6">
             <div>
@@ -994,7 +986,7 @@
               <p class="text-xs text-slate-400 mt-1">Feature prominent creator blogs on the homepage or moderate policy breaches.</p>
             </div>
             <span class="text-xs font-bold text-slate-400 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
-              Total Blogs: <span class="text-purple-400">{{ $allBlogs->count() }}</span>
+              Total Blogs: <span class="text-purple-400">{{ $adminCounts['blogs'] ?? 0 }}</span>
             </span>
           </div>
 
@@ -1076,6 +1068,7 @@
 
       <!-- ================= SECTION: VERIFICATIONS ================= -->
       @elseif(($section ?? '') === 'verifications')
+        @include('admin.partials.list-tools', ['list' => $verifications, 'action' => route('admin.verifications')])
         <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-6 shadow-xl">
           <div class="flex items-center justify-between mb-6">
             <div>
@@ -1083,7 +1076,7 @@
               <p class="text-xs text-slate-400 mt-1">Review government or photo ID documents to issue official Identity badges.</p>
             </div>
             <span class="text-xs font-bold text-amber-300 bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/30">
-              Pending: {{ $verifications->where('status','pending')->count() }}
+              Pending: {{ $adminCounts['pending_verifications'] ?? 0 }}
             </span>
           </div>
 
@@ -1157,6 +1150,7 @@
 
       <!-- ================= SECTION: DONATIONS ================= -->
       @elseif(($section ?? '') === 'donations')
+        @include('admin.partials.list-tools', ['list' => $donations, 'action' => route('admin.donations')])
         <div class="space-y-6">
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="p-5 rounded-2xl bg-[#0f0716] border border-white/10 shadow-xl">
@@ -1165,7 +1159,7 @@
                 <span class="text-emerald-400">💎</span>
               </div>
               <div class="text-2xl font-display font-black text-white">
-                ${{ number_format($donations->whereIn('status', ['confirmed', 'finished'])->sum('amount_usd'), 2) }}
+                ${{ number_format($adminCounts['donations_paid'] ?? 0, 2) }}
               </div>
               <div class="text-[11px] text-emerald-400 mt-1 font-semibold">Settled USD Equivalent</div>
             </div>
@@ -1176,7 +1170,7 @@
                 <span class="text-cyan-400">⚡</span>
               </div>
               <div class="text-2xl font-display font-black text-cyan-400">
-                {{ $donations->whereIn('status', ['confirmed', 'finished'])->count() }}
+                {{ $adminCounts['donations_paid_count'] ?? 0 }}
               </div>
               <div class="text-[11px] text-slate-400 mt-1">Paid &amp; verified on blockchain</div>
             </div>
@@ -1187,7 +1181,7 @@
                 <span class="text-amber-400">⏳</span>
               </div>
               <div class="text-2xl font-display font-black text-amber-400">
-                {{ $donations->whereIn('status', ['pending', 'waiting', 'confirming'])->count() }}
+                {{ $adminCounts['donations_pending'] ?? 0 }}
               </div>
               <div class="text-[11px] text-slate-400 mt-1">Awaiting confirmations</div>
             </div>
@@ -1273,6 +1267,7 @@
 
       <!-- ================= SECTION: REPORTS ================= -->
       @elseif(($section ?? '') === 'reports')
+        @include('admin.partials.list-tools', ['list' => $reports, 'action' => route('admin.reports')])
         <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-6 shadow-xl">
           <div class="flex items-center justify-between mb-6">
             <div>
@@ -1280,7 +1275,7 @@
               <p class="text-xs text-slate-400 mt-1">Review flagged adult content, copyright infringement, or harassment claims.</p>
             </div>
             <span class="text-xs font-bold text-rose-300 bg-rose-500/20 px-3 py-1.5 rounded-lg border border-rose-500/30">
-              Open Reports: {{ $reports->where('status','open')->count() }}
+              Open Reports: {{ $adminCounts['open_reports'] ?? 0 }}
             </span>
           </div>
 
@@ -1394,14 +1389,15 @@
 
       <!-- ================= SECTION: SUPPORT TICKETS ================= -->
       @elseif(($section ?? '') === 'support')
+        @include('admin.partials.list-tools', ['list' => $tickets, 'action' => route('admin.support')])
         <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-6 shadow-xl">
           <div class="flex items-center justify-between mb-6">
             <div>
               <h2 class="font-display font-bold text-xl text-white">Help Desk & Support Inquiries</h2>
-              <p class="text-xs text-slate-400 mt-1">Communicate directly with registered creators and subscribers.</p>
+              <p class="text-xs text-slate-400 mt-1">People write in from the public contact form. Each message becomes a ticket here. A reply is saved on the ticket and emailed to the address on that ticket when mail is configured. If mail fails, the reply stays on the ticket.</p>
             </div>
             <span class="text-xs font-bold text-cyan-300 bg-cyan-500/20 px-3 py-1.5 rounded-lg border border-cyan-500/30">
-              Open Tickets: {{ $tickets->where('status','open')->count() }}
+              Open Tickets: {{ $adminCounts['open_tickets'] ?? 0 }}
             </span>
           </div>
 
@@ -1446,10 +1442,11 @@
 
       <!-- ================= SECTION: SECURITY & LOGINS ================= -->
       @elseif(($section ?? '') === 'logins')
+        @include('admin.partials.list-tools', ['list' => $logins, 'action' => route('admin.logins')])
         <div class="space-y-6">
           @php
-            $uniqueIps = $logins->pluck('ip_address')->filter()->unique();
-            $uniqueUsers = $logins->pluck('user_id')->filter()->unique();
+            $uniqueIpCount = (int) ($adminCounts['login_ips'] ?? 0);
+            $uniqueUserCount = (int) ($adminCounts['login_users'] ?? 0);
           @endphp
 
           <!-- Login & Security Stats Cards -->
@@ -1459,7 +1456,7 @@
                 <span>Total Recorded Logins</span>
                 <span class="text-cyan-400">🛡️</span>
               </div>
-              <div class="text-2xl font-display font-black text-white">{{ number_format($logins->count()) }}</div>
+              <div class="text-2xl font-display font-black text-white">{{ number_format($adminCounts['login_rows'] ?? 0) }}</div>
               <div class="text-[11px] text-cyan-400 mt-1 font-semibold">Active session logs stored</div>
             </div>
 
@@ -1468,7 +1465,7 @@
                 <span>Unique IP Addresses</span>
                 <span class="text-pink-400">🌐</span>
               </div>
-              <div class="text-2xl font-display font-black text-pink-400">{{ $uniqueIps->count() }}</div>
+              <div class="text-2xl font-display font-black text-pink-400">{{ number_format($uniqueIpCount) }}</div>
               <div class="text-[11px] text-slate-400 mt-1">Distinct IP locations audited</div>
             </div>
 
@@ -1477,7 +1474,7 @@
                 <span>Active Signed-In Members</span>
                 <span class="text-emerald-400">👥</span>
               </div>
-              <div class="text-2xl font-display font-black text-emerald-400">{{ $uniqueUsers->count() }}</div>
+              <div class="text-2xl font-display font-black text-emerald-400">{{ number_format($uniqueUserCount) }}</div>
               <div class="text-[11px] text-slate-400 mt-1">Distinct member IDs logged</div>
             </div>
           </div>
@@ -1581,6 +1578,8 @@
         </script>
 
       <!-- ================= SECTION: STATIC PAGES ================= -->
+      @elseif(($section ?? '') === 'languages')
+        @include('admin.partials.languages')
       @elseif(($section ?? '') === 'pages')
         @php $pageEditor = $staticPageEditor ?? null; @endphp
         <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-6 lg:p-8 shadow-xl">
@@ -1768,6 +1767,48 @@
                   <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Max Audio Size (MB)</label>
                     <input type="number" name="max_audio_mb" value="{{ $settings['max_audio_mb'] ?? 20 }}" class="w-full px-3.5 py-2.5 bg-[#07030d] border border-white/10 rounded-xl text-white focus:outline-none focus:border-pink-500">
+                  </div>
+                </div>
+
+                <div class="p-4 rounded-xl bg-[#07030d] border border-white/10 space-y-3">
+                  <span class="text-xs font-bold uppercase tracking-wider text-pink-400">Communities, blogs, classifieds, admin lists</span>
+                  <div class="grid sm:grid-cols-2 gap-3">
+                    <label class="text-[11px] text-slate-300">Max extra blogs (0 = unlimited)
+                      <input type="number" min="0" name="max_extra_blogs" value="{{ $settings['max_extra_blogs'] ?? 0 }}" class="mt-1 w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white">
+                    </label>
+                    <label class="text-[11px] text-slate-300">Max communities per member (0 = unlimited)
+                      <input type="number" min="0" name="max_user_communities" value="{{ $settings['max_user_communities'] ?? 5 }}" class="mt-1 w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white">
+                    </label>
+                    <label class="text-[11px] text-slate-300">Communities per directory page
+                      <input type="number" min="6" max="60" name="member_communities_per_page" value="{{ $settings['member_communities_per_page'] ?? 12 }}" class="mt-1 w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white">
+                    </label>
+                    <label class="text-[11px] text-slate-300">Admin list rows per page
+                      <input type="number" min="10" max="100" name="admin_list_per_page" value="{{ $settings['admin_list_per_page'] ?? 25 }}" class="mt-1 w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white">
+                    </label>
+                    <label class="text-[11px] text-slate-300">Sex classifieds
+                      <select name="classifieds_enabled" class="mt-1 w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white">
+                        <option value="1" {{ ($settings['classifieds_enabled'] ?? '1') === '1' ? 'selected' : '' }}>Enabled</option>
+                        <option value="0" {{ ($settings['classifieds_enabled'] ?? '1') === '0' ? 'selected' : '' }}>Disabled</option>
+                      </select>
+                    </label>
+                    <label class="text-[11px] text-slate-300">Classified tag cloud size
+                      <input type="number" min="1" name="classifieds_max_tags" value="{{ $settings['classifieds_max_tags'] ?? 30 }}" class="mt-1 w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white">
+                    </label>
+                    <label class="text-[11px] text-slate-300">Classifieds per page
+                      <input type="number" min="12" max="96" name="classifieds_per_page" value="{{ $settings['classifieds_per_page'] ?? 36 }}" class="mt-1 w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white">
+                    </label>
+                    <label class="text-[11px] text-slate-300">Classified expiry (months)
+                      <input type="number" min="1" name="classifieds_expire_months" value="{{ $settings['classifieds_expire_months'] ?? 12 }}" class="mt-1 w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white">
+                    </label>
+                    <label class="text-[11px] text-slate-300">Title min / max characters
+                      <span class="flex gap-2 mt-1"><input type="number" name="classifieds_title_min" value="{{ $settings['classifieds_title_min'] ?? 10 }}" class="w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white"><input type="number" name="classifieds_title_max" value="{{ $settings['classifieds_title_max'] ?? 80 }}" class="w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white"></span>
+                    </label>
+                    <label class="text-[11px] text-slate-300">Description min / max characters
+                      <span class="flex gap-2 mt-1"><input type="number" name="classifieds_body_min" value="{{ $settings['classifieds_body_min'] ?? 30 }}" class="w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white"><input type="number" name="classifieds_body_max" value="{{ $settings['classifieds_body_max'] ?? 5000 }}" class="w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white"></span>
+                    </label>
+                    <label class="text-[11px] text-slate-300">Tags min / max
+                      <span class="flex gap-2 mt-1"><input type="number" name="classifieds_tags_min" value="{{ $settings['classifieds_tags_min'] ?? 2 }}" class="w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white"><input type="number" name="classifieds_tags_max" value="{{ $settings['classifieds_tags_max'] ?? 6 }}" class="w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white"></span>
+                    </label>
                   </div>
                 </div>
 
@@ -2439,6 +2480,7 @@
 
       <!-- ================= SECTION: POSTS (DEFAULT) ================= -->
       @elseif(($section ?? '') === 'posts' || ($section ?? '') === 'overview' || empty($section))
+        @include('admin.partials.list-tools', ['list' => $allPosts, 'action' => route('admin.posts')])
         <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-6 shadow-xl">
           <div class="flex items-center justify-between mb-6">
             <div>
@@ -2446,7 +2488,7 @@
               <p class="text-xs text-slate-400 mt-1">Directly view and moderate posts across all 6 formats (text, photo, video, quote, link, chat).</p>
             </div>
             <span class="text-xs font-bold text-slate-400 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
-              Total Posts: <span class="text-pink-400">{{ $allPosts->count() }}</span>
+              Total Posts: <span class="text-pink-400">{{ $adminCounts['posts'] ?? 0 }}</span>
             </span>
           </div>
 
@@ -2515,25 +2557,26 @@
 
       <!-- ================= SECTION: ADVERTISEMENTS ================= -->
       @elseif(($section ?? '') === 'ads')
+        @include('admin.partials.list-tools', ['list' => $allAds, 'action' => route('admin.ads')])
         <div class="space-y-6">
           
           <!-- Top Ad Stats -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div class="p-4 rounded-xl bg-[#0f0716] border border-white/10">
               <span class="text-xs uppercase font-semibold text-slate-400">Total Ads</span>
-              <div class="text-2xl font-display font-black text-white mt-1">{{ isset($allAds) ? $allAds->count() : 0 }}</div>
+              <div class="text-2xl font-display font-black text-white mt-1">{{ $adminCounts['ads'] ?? 0 }}</div>
             </div>
             <div class="p-4 rounded-xl bg-[#0f0716] border border-white/10">
               <span class="text-xs uppercase font-semibold text-emerald-400">Active Campaigns</span>
-              <div class="text-2xl font-display font-black text-emerald-400 mt-1">{{ isset($allAds) ? $allAds->where('is_active', true)->count() : 0 }}</div>
+              <div class="text-2xl font-display font-black text-emerald-400 mt-1">{{ $adminCounts['ads_active'] ?? 0 }}</div>
             </div>
             <div class="p-4 rounded-xl bg-[#0f0716] border border-white/10">
               <span class="text-xs uppercase font-semibold text-cyan-400">Tracked Impressions</span>
-              <div class="text-2xl font-display font-black text-cyan-400 mt-1">{{ isset($allAds) ? number_format($allAds->sum('impressions_count')) : 0 }}</div>
+              <div class="text-2xl font-display font-black text-cyan-400 mt-1">{{ number_format($adminCounts['ads_impressions'] ?? 0) }}</div>
             </div>
             <div class="p-4 rounded-xl bg-[#0f0716] border border-white/10">
               <span class="text-xs uppercase font-semibold text-pink-400">Tracked Clicks</span>
-              <div class="text-2xl font-display font-black text-pink-400 mt-1">{{ isset($allAds) ? number_format($allAds->sum('clicks_count')) : 0 }}</div>
+              <div class="text-2xl font-display font-black text-pink-400 mt-1">{{ number_format($adminCounts['ads_clicks'] ?? 0) }}</div>
             </div>
           </div>
 

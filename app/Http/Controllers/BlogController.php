@@ -90,6 +90,9 @@ class BlogController extends Controller
             ->where(function($q) {
                 $q->whereNull('media_meta->is_community')->orWhere('media_meta->is_community', false);
             })
+            ->when(\Illuminate\Support\Facades\Schema::hasColumn('posts', 'member_community_id'), function ($q) {
+                $q->whereNull('member_community_id');
+            })
             ->orderBy('published_at', 'desc');
         if ($type === 'photo' || $type === 'image' || $type === 'photos' || $type === 'images') {
             $query->where(function($q) {
@@ -112,6 +115,37 @@ class BlogController extends Controller
         $isFollowing = (Auth::check() && $blog->id) ? Auth::user()->follows()->where('blog_id', $blog->id)->exists() : false;
 
         $userBlogs = $user ? $user->blogs()->where('status', 'active')->get() : ($blog->user ? $blog->user->blogs()->where('status', 'active')->get() : collect([$blog]));
+        $userCommunities = collect();
+        $profileForCommunities = $user ?: $blog->user;
+        if ($profileForCommunities) {
+            try {
+                ensure_platform_tables();
+                $joinedIds = \App\Models\MemberCommunityUser::where('user_id', $profileForCommunities->id)->where('status', 'active')->pluck('community_id');
+                $userCommunities = \App\Models\MemberCommunity::where('status', 'active')
+                    ->where(function ($q) use ($profileForCommunities, $joinedIds) {
+                        $q->where('owner_id', $profileForCommunities->id)->orWhereIn('id', $joinedIds);
+                    })
+                    ->orderBy('title')
+                    ->get();
+            } catch (\Throwable $e) {
+                $userCommunities = collect();
+            }
+        }
+        $profileForCommunities = $user ?: $blog->user;
+        if ($profileForCommunities) {
+            try {
+                ensure_platform_tables();
+                $joinedIds = \App\Models\MemberCommunityUser::where('user_id', $profileForCommunities->id)->where('status', 'active')->pluck('community_id');
+                $userCommunities = \App\Models\MemberCommunity::where('status', 'active')
+                    ->where(function ($q) use ($profileForCommunities, $joinedIds) {
+                        $q->where('owner_id', $profileForCommunities->id)->orWhereIn('id', $joinedIds);
+                    })
+                    ->orderBy('title')
+                    ->get();
+            } catch (\Throwable $e) {
+                $userCommunities = collect();
+            }
+        }
 
         $profileUser = $user ?: $blog->user;
         $isBlockedByMe = false;
@@ -142,6 +176,7 @@ class BlogController extends Controller
             'blog',
             'user',
             'userBlogs',
+            'userCommunities',
             'posts',
             'type',
             'followerCount',
@@ -182,6 +217,9 @@ class BlogController extends Controller
             })
             ->where(function($q) {
                 $q->whereNull('media_meta->is_community')->orWhere('media_meta->is_community', false);
+            })
+            ->when(\Illuminate\Support\Facades\Schema::hasColumn('posts', 'member_community_id'), function ($q) {
+                $q->whereNull('member_community_id');
             })
             ->orderBy('published_at', 'desc');
         if ($type === 'photo' || $type === 'image' || $type === 'photos' || $type === 'images') {

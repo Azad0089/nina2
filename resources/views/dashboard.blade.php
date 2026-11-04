@@ -416,6 +416,18 @@
             <span>My Blogs & URLs</span>
           </a>
 
+          <a href="{{ route('dashboard.communities') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition {{ ($section ?? '') === 'communities' ? 'bg-gradient-to-r from-pink-500/20 to-transparent text-pink-400 border-l-4 border-pink-500' : 'text-slate-400 hover:text-white hover:bg-white/5' }}">
+            {!! icon('users') !!}
+            <span>My Communities</span>
+          </a>
+
+          @if(classifieds_enabled())
+          <a href="{{ route('dashboard.classifieds') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition {{ ($section ?? '') === 'classifieds' ? 'bg-gradient-to-r from-pink-500/20 to-transparent text-pink-400 border-l-4 border-pink-500' : 'text-slate-400 hover:text-white hover:bg-white/5' }}">
+            {!! icon('megaphone') !!}
+            <span>Sex Ads</span>
+          </a>
+          @endif
+
           <a href="{{ route('dashboard.referrals') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition {{ ($section ?? '') === 'referrals' ? 'bg-gradient-to-r from-pink-500/20 to-transparent text-pink-400 border-l-4 border-pink-500' : 'text-slate-400 hover:text-white hover:bg-white/5' }}">
             {!! icon('users') !!}
             <span>Referrals & Rewards</span>
@@ -841,6 +853,11 @@
                     <span id="selectedFileName" class="text-xs text-pink-400 font-semibold mt-2 block"></span>
                   </label>
                 </div>
+                <div id="videoUrlBox" class="hidden mt-3">
+                  <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Or embed a video URL</label>
+                  <input type="url" name="video_url" placeholder="https://… paste a tube, YouTube, or Vimeo page link" class="w-full bg-[#170a22] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-pink-500 transition">
+                  <p class="text-[11px] text-slate-400 mt-1">The page link is turned into an embed. A file upload is used when both are provided.</p>
+                </div>
               </div>
 
               <!-- Heading / Title Field -->
@@ -1154,6 +1171,8 @@
               hiddenType.value = type;
 
               mediaBox.classList.toggle('hidden', type !== 'photo' && type !== 'video');
+              const videoUrlBox = document.getElementById('videoUrlBox');
+              if (videoUrlBox) videoUrlBox.classList.toggle('hidden', type !== 'video');
               quoteBox.classList.toggle('hidden', type !== 'quote');
               linkBox.classList.toggle('hidden', type !== 'link');
               chatBox.classList.toggle('hidden', type !== 'chat');
@@ -1277,6 +1296,10 @@
                     <span class="text-xs text-slate-400 block mt-1">Supports JPG, PNG, WEBP &amp; MP4/WEBM videos</span>
                     <span id="editSelectedFileName" class="text-xs text-pink-400 font-semibold mt-2 block"></span>
                   </label>
+                </div>
+                <div class="mt-3 {{ $post->type === 'video' ? '' : 'hidden' }}" id="editVideoUrlBox">
+                  <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Or replace with a video URL</label>
+                  <input type="url" name="video_url" value="{{ is_array($post->media_meta ?? null) ? ($post->media_meta['embed_url'] ?? '') : '' }}" placeholder="https://… tube, YouTube, or Vimeo page link" class="w-full bg-[#170a22] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-pink-500 transition">
                 </div>
               </div>
 
@@ -1448,6 +1471,8 @@
               if (editHiddenType) editHiddenType.value = type;
 
               if (editMediaBox) editMediaBox.classList.toggle('hidden', type !== 'photo' && type !== 'video');
+              const editVideoUrlBox = document.getElementById('editVideoUrlBox');
+              if (editVideoUrlBox) editVideoUrlBox.classList.toggle('hidden', type !== 'video');
               if (editQuoteBox) editQuoteBox.classList.toggle('hidden', type !== 'quote');
               if (editLinkBox) editLinkBox.classList.toggle('hidden', type !== 'link');
               if (editChatBox) editChatBox.classList.toggle('hidden', type !== 'chat');
@@ -1994,6 +2019,10 @@
 
 
       <!-- ================= SECTION: REFERRALS ================= -->
+      @elseif(($section ?? '') === 'communities')
+        @include('dashboard.partials.communities')
+      @elseif(($section ?? '') === 'classifieds')
+        @include('dashboard.partials.classifieds')
       @elseif(($section ?? '') === 'referrals')
 
         <div class="max-w-4xl mx-auto space-y-6">

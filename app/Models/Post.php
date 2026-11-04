@@ -8,6 +8,8 @@ class Post extends Model
 {
     protected $fillable = [
         'blog_id',
+        'member_community_id',
+        'is_pinned',
         'type',
         'status',
         'is_community',
@@ -50,6 +52,19 @@ class Post extends Model
         return array_values(array_unique(array_filter(array_map(function($t) {
             return strtolower(trim(ltrim((string)$t, '#')));
         }, $tags))));
+    }
+
+    public function scopePublicFeed($query)
+    {
+        $query->where('status', 'published')->where(function ($q) {
+            $q->whereNull('is_community')->orWhere('is_community', 0);
+        });
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('posts', 'member_community_id')) {
+                $query->whereNull('member_community_id');
+            }
+        } catch (\Throwable $e) {}
+        return $query;
     }
 
     public function blog()

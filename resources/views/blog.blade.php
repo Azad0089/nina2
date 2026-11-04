@@ -93,6 +93,15 @@
           </div>
         @endif
 
+        @if(isset($userCommunities) && $userCommunities->count())
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:var(--mute);margin-right:4px;">Communities:</span>
+            @foreach($userCommunities as $community)
+              <a href="{{ route('member-community.show', $community->slug) }}" class="chip" style="padding:4px 10px;font-size:12px;border-radius:9999px;">{{ $community->title }}</a>
+            @endforeach
+          </div>
+        @endif
+
         @if(($blog->is_main || $blog->show_profile) && ($blog->bio || $blog->website1 || $blog->website2 || $blog->website3 || $blog->contact_email))
           <div class="blog-profile" style="margin-top:18px;padding-top:18px;border-top:1px solid var(--line)">
             @if($blog->bio)<p>{!! nl2br(e($blog->bio)) !!}</p>@endif

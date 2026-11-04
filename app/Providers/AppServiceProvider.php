@@ -27,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
 
         try {
             ensure_private_message_tables();
+            ensure_platform_tables();
         } catch (\Throwable $e) {
             // Schema is created again on the next request if the database is not ready yet.
         }

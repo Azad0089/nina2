@@ -71,10 +71,20 @@
     <img src="{{ asset('assets/favicon-192.png') }}" alt="" width="36" height="36">
     <span>{{ site_name() }}</span>
   </a>
-  <form class="search" role="search" action="{{ route('trending') }}" method="get">
+  <form class="search" role="search" action="{{ route('search') }}" method="get">
     {!! icon('search') !!}
-    <input type="search" name="tag" placeholder="Search blogs, tags and posts" aria-label="Search blogs, tags and posts" value="{{ request('tag') }}">
+    <input type="search" name="q" placeholder="{{ t('search.placeholder') }}" aria-label="{{ t('search.placeholder') }}" value="{{ request('q', request('tag')) }}">
   </form>
+  @if(count(enabled_locales()) > 1)
+    <form method="get" action="{{ route('locale.switch', ['code' => 'en']) }}" id="localeSwitch" style="display:flex;align-items:center;">
+      <label class="sr-only" for="localePick">{{ t('lang.switch') }}</label>
+      <select id="localePick" onchange="if(this.value){window.location=this.value}" style="background:var(--ink);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12px;">
+        @foreach(enabled_locales() as $code => $label)
+          <option value="{{ route('locale.switch', ['code' => $code]) }}" {{ current_locale() === $code ? 'selected' : '' }}>{{ $label }}</option>
+        @endforeach
+      </select>
+    </form>
+  @endif
 
   <!-- Theme Toggle Button -->
   <button type="button" class="icon-btn theme-toggle-btn" onclick="window.toggleNinaTheme()" aria-label="Toggle light or dark theme" title="Toggle Light / Dark theme" style="margin-left:auto;flex-shrink:0;">

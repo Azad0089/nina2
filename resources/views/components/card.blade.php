@@ -85,7 +85,27 @@
   $mediaAllowed = '<p><br><b><strong><i><em><u><s><strike><h2><h3><h4><blockquote><ul><ol><li><a><code><pre><span><mark><hr><div>';
 @endphp
 
-@if($isVideo)
+@php
+  $embedUrl = is_array($p->media_meta ?? null) ? (string) ($p->media_meta['embed_url'] ?? '') : '';
+  $embedKind = is_array($p->media_meta ?? null) ? (string) ($p->media_meta['embed_kind'] ?? '') : '';
+@endphp
+@if($embedUrl !== '' && $embedKind !== 'file')
+  <figure class="media media-video" style="position:relative;background:#05020a;border-radius:4px;overflow:hidden;margin:0;">
+    <iframe src="{{ $embedUrl }}" title="{{ $p->heading ?: 'Video' }}" loading="lazy" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen style="width:100%;aspect-ratio:16/9;border:0;background:#000;"></iframe>
+  </figure>
+  <div class="c-body">
+    @if(!empty($p->heading))
+      <h3 style="margin:0 0 8px;font-size:1.05rem;line-height:1.35;">@if(!$isSingle)<a href="{{ $postUrl }}" target="_blank" style="color:inherit;text-decoration:none;">{{ $p->heading }}</a>@else{{ $p->heading }}@endif</h3>
+    @endif
+    @if($mediaPlain !== '')
+      @if($isSingle)
+        <div class="rich-body">{!! strip_tags($mediaHtml, $mediaAllowed) !!}</div>
+      @else
+        <p style="margin:0;">{{ $displayCap }} @if($isCapLong)<a href="{{ $postUrl }}" target="_blank" style="color:#19e3ff;font-weight:600;font-size:12px;text-decoration:underline;">Read more &rarr;</a>@endif</p>
+      @endif
+    @endif
+
+@elseif($isVideo)
   <figure class="media media-video" style="position:relative;background:#05020a;border-radius:4px;overflow:hidden;margin:0;">
     <video
       controls
