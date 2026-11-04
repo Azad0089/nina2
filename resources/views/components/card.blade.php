@@ -24,6 +24,10 @@
   $isReblogged = auth()->check() && method_exists(auth()->user(), 'blogs') ? auth()->user()->blogs()->whereHas('posts', fn($q) => $q->where('reblog_of_post_id', $p->id))->exists() : false;
 @endphp
 <article class="card t-{{ $type }}" data-type="{{ $type }}" data-post-id="{{ $p->id }}" style="--c:{{ $color }}">
+  @php $postSchema = post_schema($p); @endphp
+  @if(!empty($postSchema))
+    {!! schema_ld_tag($postSchema) !!}
+  @endif
   <header class="c-head">
     <a href="{{ $blogUrl }}" style="display:flex;flex-shrink:0;text-decoration:none;">
       @if(!empty($p->blog->avatar_path))

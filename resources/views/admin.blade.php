@@ -1601,6 +1601,12 @@
                   <textarea name="meta_description" rows="3" class="w-full px-3.5 py-2.5 bg-[#07030d] border border-white/10 rounded-xl text-white focus:outline-none focus:border-pink-500 text-sm leading-relaxed">{{ $settings['meta_description'] ?? 'An adult microblogging community. Post photos, text, video, quotes and chats.' }}</textarea>
                 </div>
 
+                <div>
+                  <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Global Schema Markup</label>
+                  <textarea name="custom_schema" rows="8" placeholder='{"@context":"https://schema.org","@type":"WebSite","name":"Nina.Sucks","url":"https://nina.sucks"}' class="w-full px-3.5 py-2.5 bg-[#07030d] border border-white/10 rounded-xl text-white focus:outline-none focus:border-pink-500 text-xs leading-relaxed font-mono">{{ $settings['custom_schema'] ?? '' }}</textarea>
+                  <span class="text-[10px] text-slate-400 mt-1 block">Paste Organization, WebSite, or any other JSON-LD. One or more schema blocks. Script tags are optional. This is added on every page.</span>
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Logo Asset URL / Path</label>

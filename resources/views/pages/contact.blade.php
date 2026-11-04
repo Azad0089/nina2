@@ -3,6 +3,33 @@
 @section('title', 'Contact | ' . site_name())
 @section('description', 'Contact ' . site_name() . ' support: questions, reports, appeals, verification, advertising and legal requests.')
 
+@php
+  $contactEmailForSchema = \App\Models\Setting::get('community_email', 'support@nina.sucks');
+  $contactSchema = [
+    '@context' => 'https://schema.org',
+    '@type' => 'ContactPage',
+    'name' => 'Contact ' . site_name(),
+    'url' => url('/contact'),
+    'description' => 'Contact ' . site_name() . ' support for questions, reports, appeals, verification, advertising, and legal requests.',
+    'mainEntity' => [
+      '@type' => 'Organization',
+      'name' => site_name(),
+      'url' => url('/'),
+      'email' => $contactEmailForSchema,
+      'contactPoint' => [
+        '@type' => 'ContactPoint',
+        'contactType' => 'customer support',
+        'email' => $contactEmailForSchema,
+        'url' => url('/contact'),
+        'availableLanguage' => 'English',
+      ],
+    ],
+  ];
+@endphp
+@push('head')
+  {!! schema_ld_tag($contactSchema) !!}
+@endpush
+
 @section('content')
   @include('partials.header')
 

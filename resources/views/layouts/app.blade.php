@@ -323,6 +323,11 @@
     {!! $siteSettings['head_scripts'] !!}
   @endif
 
+  @if(!empty($siteSettings['custom_schema']))
+    {!! custom_schema_markup($siteSettings['custom_schema']) !!}
+  @endif
+
+  @stack('head')
   @stack('styles')
 </head>
 <body>

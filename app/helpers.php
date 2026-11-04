@@ -123,6 +123,347 @@ if (!function_exists('media_url')) {
     }
 }
 
+if (!function_exists('schema_ld_tag')) {
+    function schema_ld_tag($data): string
+    {
+        if (!is_array($data) || $data === []) {
+            return '';
+        }
+        $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+        if ($json === false) {
+            return '';
+        }
+        return '<script type="application/ld+json">' . $json . '</script>';
+    }
+}
+
+if (!function_exists('custom_schema_markup')) {
+    function custom_schema_markup($raw): string
+    {
+        $raw = trim((string) $raw);
+        if ($raw === '') {
+            return '';
+        }
+
+        $chunks = [];
+        if (preg_match_all('#<script\b[^>]*>(.*?)</script>#is', $raw, $matches)) {
+            foreach ($matches[1] as $inner) {
+                $chunks[] = trim($inner);
+            }
+        } else {
+            $chunks[] = $raw;
+        }
+
+        $html = '';
+        foreach ($chunks as $chunk) {
+            foreach (schema_json_documents($chunk) as $document) {
+                $html .= schema_ld_tag($document);
+            }
+        }
+        return $html;
+    }
+}
+
+if (!function_exists('schema_json_documents')) {
+    function schema_json_documents(string $chunk): array
+    {
+        $chunk = trim($chunk);
+        if ($chunk === '') {
+            return [];
+        }
+        $decoded = json_decode($chunk, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return [$decoded];
+        }
+
+        $docs = [];
+        $length = strlen($chunk);
+        for ($i = 0; $i < $length; $i++) {
+            $startChar = $chunk[$i];
+            if ($startChar !== '{' && $startChar !== '[') {
+                continue;
+            }
+            $end = schema_json_end($chunk, $i);
+            if ($end === null) {
+                continue;
+            }
+            $piece = substr($chunk, $i, $end - $i + 1);
+            $decoded = json_decode($piece, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $docs[] = $decoded;
+                $i = $end;
+            }
+        }
+        return $docs;
+    }
+}
+
+if (!function_exists('schema_json_end')) {
+    function schema_json_end(string $json, int $start): ?int
+    {
+        $pairs = ['{' => '}', '[' => ']'];
+        $open = $json[$start];
+        if (!isset($pairs[$open])) {
+            return null;
+        }
+        $stack = [$pairs[$open]];
+        $length = strlen($json);
+        $inString = false;
+        $escaped = false;
+        for ($i = $start + 1; $i < $length; $i++) {
+            $char = $json[$i];
+            if ($inString) {
+                if ($escaped) {
+                    $escaped = false;
+                } elseif ($char === '\\') {
+                    $escaped = true;
+                } elseif ($char === '"') {
+                    $inString = false;
+                }
+                continue;
+            }
+            if ($char === '"') {
+                $inString = true;
+                continue;
+            }
+            if ($char === '{' || $char === '[') {
+                $stack[] = $pairs[$char];
+                continue;
+            }
+            if ($char === '}' || $char === ']') {
+                if (!$stack || array_pop($stack) !== $char) {
+                    return null;
+                }
+                if (!$stack) {
+                    return $i;
+                }
+            }
+        }
+        return null;
+    }
+}
+
+if (!function_exists('schema_plain_text')) {
+    function schema_plain_text($html, int $limit = 5000): string
+    {
+        $text = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags((string) $html), ENT_QUOTES, 'UTF-8')));
+        if ($limit > 0 && mb_strlen($text) > $limit) {
+            return rtrim(mb_substr($text, 0, $limit - 1)) . '…';
+        }
+        return $text;
+    }
+}
+
+if (!function_exists('schema_media_url')) {
+    function schema_media_url($path): string
+    {
+        $path = trim((string) $path);
+        if ($path === '' || str_starts_with($path, 'data:')) {
+            return '';
+        }
+        return media_url($path);
+    }
+}
+
+if (!function_exists('schema_publisher')) {
+    function schema_publisher(): array
+    {
+        static $publisher = null;
+        if ($publisher !== null) {
+            return $publisher;
+        }
+        $logo = asset('assets/logo.png');
+        try {
+            $path = \App\Models\Setting::get('site_logo');
+            if ($path) {
+                $logo = str_starts_with($path, 'http') ? $path : asset(ltrim($path, '/'));
+            }
+        } catch (\Throwable $e) {}
+        $publisher = [
+            '@type' => 'Organization',
+            'name' => site_name(),
+            'url' => url('/'),
+            'logo' => [
+                '@type' => 'ImageObject',
+                'url' => $logo,
+            ],
+        ];
+        return $publisher;
+    }
+}
+
+if (!function_exists('post_schema')) {
+    function post_schema($post): ?array
+    {
+        if (!$post) {
+            return null;
+        }
+        $status = $post->status ?? 'published';
+        if ($status !== '' && $status !== null && $status !== 'published') {
+            return null;
+        }
+
+        try {
+            $type = strtolower((string) ($post->type ?? 'text'));
+            $path = (string) ($post->media_path ?? '');
+            $mediaType = strtolower((string) ($post->media_type ?? ''));
+            $isVideo = $type === 'video'
+                || $mediaType === 'video'
+                || ($path !== '' && preg_match('/\.(mp4|webm|mov|m4v|ogg)(\?.*)?$/i', $path));
+            $isImage = !$isVideo && (
+                in_array($type, ['photo', 'image', 'photos', 'images'], true)
+                || in_array($mediaType, ['photo', 'image'], true)
+            );
+
+            $blog = $post->blog ?? null;
+            $username = ($blog && $blog->user) ? $blog->user->username : ($blog->slug ?? 'creator');
+            $authorUrl = $blog ? url(blog_url($blog)) : url('/');
+            $author = [
+                '@type' => 'Person',
+                'name' => $username,
+                'url' => $authorUrl,
+            ];
+            $published = $post->published_at ?? $post->created_at ?? null;
+            $modified = $post->updated_at ?? $published;
+            $publishedIso = $published ? \Illuminate\Support\Carbon::parse($published)->toAtomString() : null;
+            $modifiedIso = $modified ? \Illuminate\Support\Carbon::parse($modified)->toAtomString() : $publishedIso;
+            $permalink = route('post.show', ['id' => $post->id]);
+            $caption = schema_plain_text($post->caption ?? '', 500);
+            $body = schema_plain_text($post->body ?? '', 5000);
+            $heading = trim((string) ($post->heading ?? ''));
+
+            if ($isVideo) {
+                $contentUrl = schema_media_url($path);
+                if ($contentUrl === '') {
+                    return null;
+                }
+                $thumb = '';
+                if ($blog && !empty($blog->avatar_path)) {
+                    $thumb = schema_media_url($blog->avatar_path);
+                }
+                if ($thumb === '') {
+                    $thumb = schema_publisher()['logo']['url'];
+                }
+                $name = $heading !== '' ? $heading : ($caption !== '' ? schema_plain_text($caption, 110) : ('Video by @' . $username));
+                $description = $caption !== '' ? $caption : ($body !== '' ? schema_plain_text($body, 500) : $name);
+                $schema = [
+                    '@context' => 'https://schema.org',
+                    '@type' => 'VideoObject',
+                    'name' => schema_plain_text($name, 110),
+                    'description' => $description,
+                    'thumbnailUrl' => $thumb,
+                    'contentUrl' => $contentUrl,
+                    'embedUrl' => $permalink,
+                    'url' => $permalink,
+                    'author' => $author,
+                    'publisher' => schema_publisher(),
+                ];
+                if ($publishedIso) {
+                    $schema['uploadDate'] = $publishedIso;
+                }
+                return $schema;
+            }
+
+            if ($isImage) {
+                $contentUrl = schema_media_url($path);
+                if ($contentUrl === '') {
+                    return null;
+                }
+                $name = $heading !== '' ? $heading : ($caption !== '' ? schema_plain_text($caption, 110) : ('Photo by @' . $username));
+                $description = $caption !== '' ? $caption : ($body !== '' ? schema_plain_text($body, 500) : $name);
+                $schema = [
+                    '@context' => 'https://schema.org',
+                    '@type' => 'ImageObject',
+                    'name' => schema_plain_text($name, 110),
+                    'description' => $description,
+                    'contentUrl' => $contentUrl,
+                    'url' => $permalink,
+                    'creator' => $author,
+                    'copyrightHolder' => $author,
+                    'creditText' => $username,
+                ];
+                if ($publishedIso) {
+                    $schema['datePublished'] = $publishedIso;
+                }
+                return $schema;
+            }
+
+            $quote = trim((string) ($post->quote_text ?? ''));
+            $source = trim((string) ($post->quote_source ?? ''));
+            $linkUrl = trim((string) ($post->link_url ?? ''));
+            $linkTitle = trim((string) ($post->link_title ?? ''));
+            $chatLines = [];
+            $chat = $post->chat_payload ?? null;
+            if (is_string($chat)) {
+                $chat = json_decode($chat, true);
+            }
+            if (is_array($chat)) {
+                foreach ($chat as $line) {
+                    if (is_array($line)) {
+                        $chatLines[] = trim((string) ($line[0] ?? '')) . ': ' . trim((string) ($line[1] ?? ''));
+                    } else {
+                        $chatLines[] = trim((string) $line);
+                    }
+                }
+            }
+            $chatText = schema_plain_text(implode("\n", array_filter($chatLines)), 5000);
+
+            if ($type === 'quote') {
+                $articleBody = trim($quote . ($source !== '' ? ' — ' . $source : ''));
+                $headline = $heading !== '' ? $heading : schema_plain_text($quote, 110);
+            } elseif ($type === 'link') {
+                $articleBody = trim($linkTitle . ($linkUrl !== '' ? "\n" . $linkUrl : '') . ($body !== '' ? "\n" . $body : '') . ($caption !== '' ? "\n" . $caption : ''));
+                $headline = $heading !== '' ? $heading : ($linkTitle !== '' ? $linkTitle : 'Link by @' . $username);
+            } elseif ($type === 'chat') {
+                $articleBody = $chatText;
+                $headline = $heading !== '' ? $heading : ('Chat by @' . $username);
+            } else {
+                $articleBody = $body !== '' ? $body : $caption;
+                $headline = $heading !== '' ? $heading : ($caption !== '' ? $caption : schema_plain_text($articleBody, 110));
+            }
+
+            $headline = schema_plain_text($headline, 110);
+            $articleBody = schema_plain_text($articleBody, 5000);
+            if ($headline === '' && $articleBody === '') {
+                return null;
+            }
+            if ($headline === '') {
+                $headline = schema_plain_text($articleBody, 110);
+            }
+
+            $schema = [
+                '@context' => 'https://schema.org',
+                '@type' => 'Article',
+                'headline' => $headline,
+                'description' => schema_plain_text($caption !== '' ? $caption : $articleBody, 300),
+                'articleBody' => $articleBody,
+                'url' => $permalink,
+                'mainEntityOfPage' => $permalink,
+                'author' => $author,
+                'publisher' => schema_publisher(),
+                'image' => schema_publisher()['logo']['url'],
+                'inLanguage' => 'en',
+            ];
+            if ($publishedIso) {
+                $schema['datePublished'] = $publishedIso;
+            }
+            if ($modifiedIso) {
+                $schema['dateModified'] = $modifiedIso;
+            }
+            if ($type === 'link' && $linkUrl !== '') {
+                $schema['citation'] = $linkUrl;
+            }
+            $tags = $post->tags_list ?? [];
+            if (!empty($tags)) {
+                $schema['keywords'] = implode(', ', array_slice($tags, 0, 20));
+            }
+            return $schema;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+}
+
 if (!function_exists('initial')) {
     function initial($str) {
         $str = trim((string)$str);

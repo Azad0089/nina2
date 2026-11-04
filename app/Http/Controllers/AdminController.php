@@ -129,7 +129,7 @@ class AdminController extends Controller
         $this->checkAdmin();
 
         $allowed = [
-            'site_title', 'meta_description', 'site_logo', 'site_favicon',
+            'site_title', 'meta_description', 'custom_schema', 'site_logo', 'site_favicon',
             'primary_color', 'secondary_color', 'head_scripts', 'donations_enabled',
             'bitcart_enabled', 'qr_code_enabled',
             'premium_price_usd', 'premium_plus_price_usd',

@@ -2,6 +2,12 @@
 
 @section('title', $title . ' | Nina.Sucks')
 
+@push('head')
+  @if(!empty($pageSchema))
+    {!! schema_ld_tag($pageSchema) !!}
+  @endif
+@endpush
+
 @section('content')
   @include('partials.header')
 

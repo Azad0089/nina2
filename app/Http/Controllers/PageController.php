@@ -433,21 +433,70 @@ HTML;
 
     public function about()
     {
+        $name = site_name();
+        $lead = 'Decentralized expression, unlimited creative blogs, and pure adult microblogging.';
+        $email = \App\Models\Setting::get('community_email');
+        $organization = [
+            '@type' => 'Organization',
+            'name' => $name,
+            'url' => url('/'),
+            'description' => $name . ' is an adult microblogging community for photos, text, video, quotes, links, and chats.',
+        ];
+        if ($email) {
+            $organization['email'] = $email;
+        }
+
         return view('pages.content-page', [
-            'title' => 'About ' . site_name(),
-            'lead' => 'Decentralized expression, unlimited creative blogs, and pure adult microblogging.',
+            'title' => 'About ' . $name,
+            'lead' => $lead,
             'color' => '#ff2bd6',
-            'bodyHtml' => '<h2>Our Philosophy</h2><p>' . site_name() . ' was conceived as a vibrant home for unfiltered adult self-expression, photography, literature, and visual culture. Unlike sanitized corporate platforms governed by opaque algorithms, ' . site_name() . ' gives creators complete ownership of their content, customizable appearance, and an open reverse-chronological feed.</p><h2>Unlimited Blogs for Creators</h2><p>Every account holder can create unlimited independent blogs for distinct personas, projects, or genres. Customize accent palettes, banners, avatar artwork, and bio external links.</p><h2>Creator Economy & Community</h2><p>Earn reward points simply by sharing, following, and referring peers. Boost your creations in our fair community ad marketplace or verify your identity for life.</p>'
+            'bodyHtml' => '<h2>Our Philosophy</h2><p>' . $name . ' was conceived as a vibrant home for unfiltered adult self-expression, photography, literature, and visual culture. Unlike sanitized corporate platforms governed by opaque algorithms, ' . $name . ' gives creators complete ownership of their content, customizable appearance, and an open reverse-chronological feed.</p><h2>Unlimited Blogs for Creators</h2><p>Every account holder can create unlimited independent blogs for distinct personas, projects, or genres. Customize accent palettes, banners, avatar artwork, and bio external links.</p><h2>Creator Economy & Community</h2><p>Earn reward points simply by sharing, following, and referring peers. Boost your creations in our fair community ad marketplace or verify your identity for life.</p>',
+            'pageSchema' => [
+                '@context' => 'https://schema.org',
+                '@type' => 'AboutPage',
+                'name' => 'About ' . $name,
+                'url' => url('/about'),
+                'description' => $lead,
+                'mainEntity' => $organization,
+            ],
         ]);
     }
 
     public function faq()
     {
+        $faqs = [
+            ['How do multiple blogs work?', 'From your Creator Studio dashboard under "My Blogs", you can spin up unlimited additional blogs at any time. Each blog receives its own unique web address, title, theme color, avatar, and post archive.'],
+            ['How do reward points work?', 'You earn reward points by referring friends (100 points per referral) and through active community participation. Points can be spent in the Advertising Marketplace to boost your posts to thousands of members.'],
+            ['How does the post queue work?', 'The post queue lets you schedule up to 20 text, photo, quote, and link posts. Queued posts are scheduled and automatically published sequentially.'],
+            ['What are the ID Verified Creator badges?', 'Creators who submit proof of legal age and identity receive the permanent green ID Verified badge, unlocking boosted discovery and reader trust.'],
+        ];
+        $bodyHtml = '';
+        $questions = [];
+        foreach ($faqs as [$question, $answer]) {
+            $bodyHtml .= '<h2>' . e($question) . '</h2><p>' . e($answer) . '</p>';
+            $questions[] = [
+                '@type' => 'Question',
+                'name' => $question,
+                'acceptedAnswer' => [
+                    '@type' => 'Answer',
+                    'text' => $answer,
+                ],
+            ];
+        }
+
         return view('pages.content-page', [
             'title' => 'Frequently Asked Questions',
             'lead' => 'Everything you need to know about blogging, points, and platform features.',
             'color' => '#19e3ff',
-            'bodyHtml' => '<h2>How do multiple blogs work?</h2><p>From your Creator Studio dashboard under "My Blogs", you can spin up unlimited additional blogs at any time. Each blog receives its own unique web address, title, theme color, avatar, and post archive.</p><h2>How do reward points work?</h2><p>You earn reward points by referring friends (100 points per referral) and through active community participation. Points can be spent in the Advertising Marketplace to boost your posts to thousands of members.</p><h2>How does the post queue work?</h2><p>The post queue lets you schedule up to 20 text, photo, quote, and link posts. Queued posts are scheduled and automatically published sequentially.</p><h2>What are the ID Verified Creator badges?</h2><p>Creators who submit proof of legal age and identity receive the permanent green ID Verified badge, unlocking boosted discovery and reader trust.</p>'
+            'bodyHtml' => $bodyHtml,
+            'pageSchema' => [
+                '@context' => 'https://schema.org',
+                '@type' => 'FAQPage',
+                'name' => 'Frequently Asked Questions',
+                'url' => url('/faq'),
+                'description' => 'Everything you need to know about blogging, points, and platform features.',
+                'mainEntity' => $questions,
+            ],
         ]);
     }
 
