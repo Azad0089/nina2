@@ -1,0 +1,53 @@
+<%- include('partials/head') %>
+<%- include('partials/header') %>
+
+<main class="page" id="main">
+  <%- include('partials/page-hero', { hero: { title: 'Go Premium', lead: 'Donations keep the site running. In return you get a badge and monthly points to promote your blog.', color: '#ffd60a' } }) %>
+
+  <div class="plans">
+    <section class="plan" style="--c:#ff2bd6">
+      <h2>Premium</h2>
+      <p class="price"><span>Donate</span> $15<small>+ in crypto</small></p>
+      <p class="pts"><%- badge('pro') %> 5,000 points / month</p>
+      <ul>
+        <li><%- icon('verified') %>Premium verified badge for 1 year</li>
+        <li><%- icon('verified') %>5,000 points every month</li>
+        <li><%- icon('verified') %>Spend points on views and placements</li>
+        <li><%- icon('verified') %>Renew with another donation when the year ends</li>
+      </ul>
+      <a class="btn btn-fill btn-wide" href="#donate" onclick="alert('Demo Mode: Crypto checkout is simulated. Thank you for supporting the platform!');return false;">Donate with crypto</a>
+    </section>
+
+    <section class="plan plan-hot" style="--c:#ffd60a">
+      <span class="ribbon">Best value</span>
+      <h2>Premium+</h2>
+      <p class="price"><span>Donate</span> $30<small>+ in crypto</small></p>
+      <p class="pts"><%- badge('pro') %> 11,000 points / month</p>
+      <ul>
+        <li><%- icon('verified') %>Premium verified badge for 1 year</li>
+        <li><%- icon('verified') %>11,000 points every month</li>
+        <li><%- icon('verified') %>Spend points on views and placements</li>
+        <li><%- icon('verified') %>Renew with another donation when the year ends</li>
+      </ul>
+      <a class="btn btn-fill btn-wide" href="#donate" onclick="alert('Demo Mode: Crypto checkout is simulated. Thank you for supporting the platform!');return false;">Donate with crypto</a>
+    </section>
+  </div>
+  <p class="fine center">Payments are handled by NOWPayments and BitCart. Premium lasts one year from your donation.</p>
+
+  <h2 class="sec-title">Three badges</h2>
+  <div class="tiles tiles-3">
+    <div class="tile" style="--c:#ffd60a"><%- badge('pro') %><h3>Premium verified</h3><p>Given with Premium and Premium+. Lasts one year and can be renewed with another donation.</p></div>
+    <div class="tile" style="--c:#19e3ff"><%- badge('id') %><h3>Identity verified</h3><p>For creators who send ID for review. The badge lasts for life.</p></div>
+    <div class="tile" style="--c:#ff2bd6"><%- badge('vip') %><h3>VIP</h3><p>Handed out by the admin to members who give a lot to the community. Lifetime.</p></div>
+  </div>
+
+  <h2 class="sec-title">How points work</h2>
+  <ol class="steps">
+    <li><b>Donate</b><span>Pay in crypto and your account is upgraded automatically.</span></li>
+    <li><b>Collect points</b><span>Premium members get their points every month. Everybody can also earn 100 points per friend they refer.</span></li>
+    <li><b>Get seen</b><span>Spend points in the <a class="lnk" href="<%= url('advertising.php') %>">advertising marketplace</a> to feature your blog or posts.</span></li>
+  </ol>
+</main>
+</div><!-- /.wrap -->
+
+<%- include('partials/footer') %>

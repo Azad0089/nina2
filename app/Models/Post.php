@@ -26,12 +26,10 @@ class Post extends Model
         'chat_payload',
         'views_count',
         'reblog_of_post_id',
-        'is_pinned',
         'published_at',
     ];
 
     protected $casts = [
-        'is_pinned' => 'boolean',
         'media_meta' => 'array',
         'crop_meta' => 'array',
         'chat_payload' => 'array',

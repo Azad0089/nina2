@@ -1,0 +1,37 @@
+# Nina.Sucks -- Apache config for shared hosting (mod_rewrite + mod_headers typically already on)
+
+# Never let PHP errors leak on a live site (turn on only for local debugging).
+# Wrapped in IfModule because most cPanel hosts run PHP via PHP-FPM/suPHP, not
+# mod_php -- an unwrapped php_flag/php_value line causes a 500 error on those.
+<IfModule mod_php7.c>
+  php_flag display_errors off
+</IfModule>
+<IfModule mod_php8.c>
+  php_flag display_errors off
+</IfModule>
+
+# Direct access to /includes/*.php is blocked by includes/.htaccess (Require all denied).
+
+# --- Optional pretty URLs -------------------------------------------------
+# Off by default (the app works fine with ?u=slug / ?id=123 links).
+# To enable /u/<blogslug> and /p/<postid> style URLs instead, uncomment:
+#
+# <IfModule mod_rewrite.c>
+#   RewriteEngine On
+#   RewriteRule ^u/([A-Za-z0-9\-]+)/?$ blog.php?u=$1 [L,QSA]
+#   RewriteRule ^p/([0-9]+)/?$ post.php?id=$1 [L,QSA]
+# </IfModule>
+#
+# --- Optional wildcard-subdomain blogs (username.yourdomain.com) --------
+# Needs wildcard DNS (*.yourdomain.com -> this server) and, for HTTPS, a
+# wildcard SSL certificate. Ask your host if their shared plan supports this
+# before relying on it -- many budget plans don't. Once DNS is wildcarded,
+# uncomment and adjust:
+#
+# <IfModule mod_rewrite.c>
+#   RewriteCond %{HTTP_HOST} ^([a-z0-9\-]+)\.yourdomain\.com$ [NC]
+#   RewriteCond %1 !^(www|static|api)$
+#   RewriteRule ^$ blog.php?u=%1 [L,QSA]
+# </IfModule>
+
+Options -Indexes

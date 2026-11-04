@@ -99,8 +99,6 @@ Route::post('/actions/contact', [ActionController::class, 'contact'])->name('act
 Route::post('/actions/contact.php', [ActionController::class, 'contact']);
 Route::post('/actions/message', [ActionController::class, 'sendPrivateMessage'])->name('action.message');
 Route::post('/actions/message.php', [ActionController::class, 'sendPrivateMessage']);
-Route::post('/actions/pin', [ActionController::class, 'togglePin'])->name('action.pin');
-Route::post('/actions/pin.php', [ActionController::class, 'togglePin']);
 
 // Advertising & Promotions
 Route::get('/advertising', [PromotionController::class, 'index'])->name('advertising');
@@ -190,7 +188,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard/posts', [DashboardController::class, 'posts'])->name('dashboard.posts');
     Route::get('/dashboard/posts.php', [DashboardController::class, 'posts']);
     Route::post('/dashboard/post/{id}/delete', [DashboardController::class, 'deletePost'])->name('dashboard.post.delete');
-    Route::post('/dashboard/post/{id}/pin', [DashboardController::class, 'togglePinPost'])->name('dashboard.post.pin');
     Route::get('/dashboard/queue', [DashboardController::class, 'queue'])->name('dashboard.queue');
     Route::post('/dashboard/queue/{id}/publish', [DashboardController::class, 'publishQueued'])->name('dashboard.queue.publish');
     Route::post('/dashboard/queue/{id}/delete', [DashboardController::class, 'deleteQueued'])->name('dashboard.queue.delete');

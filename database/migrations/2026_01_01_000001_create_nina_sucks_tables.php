@@ -67,7 +67,6 @@ return new class extends Migration
             $table->json('chat_payload')->nullable();
             $table->unsignedInteger('views_count')->default(0);
             $table->unsignedBigInteger('reblog_of_post_id')->nullable();
-            $table->boolean('is_pinned')->default(false);
             $table->timestamp('published_at')->nullable();
             $table->timestamps();
         });

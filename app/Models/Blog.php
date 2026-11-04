@@ -36,14 +36,6 @@ class Blog extends Model
         return $this->user ? $this->user->badge : '';
     }
 
-    public function getCoverPathAttribute($value)
-    {
-        if ($value === 'hero.jpg' || $value === 'assets/hero.jpg' || $value === '/assets/hero.jpg') {
-            return null;
-        }
-        return $value;
-    }
-
     public function posts()
     {
         return $this->hasMany(Post::class);

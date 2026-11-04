@@ -1,0 +1,36 @@
+<%- include('partials/head') %>
+<%- include('partials/header') %>
+
+<main class="page" id="main">
+  <%- include('partials/page-hero', { hero }) %>
+
+  <div class="panel" style="max-width:800px;margin:20px auto;line-height:1.7;">
+    <% if (typeof successMessage !== 'undefined' && successMessage) { %>
+      <div class="app-flash" style="margin-bottom:20px;"><%= successMessage %></div>
+    <% } %>
+
+    <%- bodyHtml %>
+
+    <% if (typeof isContact !== 'undefined' && isContact) { %>
+      <form method="post" action="<%= url('actions/contact.php') %>" style="margin-top:24px;display:flex;flex-direction:column;gap:14px;">
+        <input type="hidden" name="csrf" value="<%= csrfToken %>">
+        <label class="field"><span>Your Name</span><input type="text" name="name" required></label>
+        <label class="field"><span>Your Email</span><input type="email" name="email" required></label>
+        <label class="field"><span>Topic</span>
+          <select name="topic" style="width:100%;padding:10px;background:var(--ink);color:var(--text);border:1px solid var(--line);">
+            <option value="general">General Support</option>
+            <option value="report">Report Content / DMCA</option>
+            <option value="verification">ID Verification Request</option>
+            <option value="advertising">Advertising Query</option>
+          </select>
+        </label>
+        <label class="field"><span>Link (optional)</span><input type="url" name="link" placeholder="https://..."></label>
+        <label class="field"><span>Message</span><textarea name="message" rows="5" required style="width:100%;padding:10px;background:var(--ink);color:var(--text);border:1px solid var(--line);"></textarea></label>
+        <button type="submit" class="btn btn-fill" style="align-self:flex-start">Send Message</button>
+      </form>
+    <% } %>
+  </div>
+</main>
+</div><!-- /.wrap -->
+
+<%- include('partials/footer') %>

@@ -1,0 +1,43 @@
+<%- include('partials/head') %>
+<%- include('partials/header') %>
+
+<main class="page" id="main">
+  <%- include('partials/page-hero', { hero: { title: 'Advertising marketplace', lead: 'Spend your points to get your blog or posts in front of more people.', color: '#ff2bd6' } }) %>
+
+  <div class="balance">
+    <div><small>Your points</small><b><%= currentUser ? (currentUser.points || 0) + ' points available' : 'Sign in to see your balance' %></b></div>
+    <% if (!currentUser) { %>
+      <a class="btn btn-fill" href="<%= url('login.php') %>" data-modal="login">Sign in</a>
+    <% } else { %>
+      <a class="btn btn-fill" href="<%= url('premium.php') %>">Get more points</a>
+    <% } %>
+  </div>
+
+  <h2 class="sec-title">Earn points</h2>
+  <div class="tiles tiles-3">
+    <div class="tile" style="--c:#ff2bd6"><%- icon('star') %><h3>Premium</h3><p>5,000 points every month</p></div>
+    <div class="tile" style="--c:#ffd60a"><%- icon('star') %><h3>Premium+</h3><p>11,000 points every month</p></div>
+    <div class="tile" style="--c:#19e3ff"><%- icon('star') %><h3>Referrals</h3><p>100 points per invited member</p></div>
+  </div>
+  <p class="fine">Not a premium member yet? <a class="lnk" href="<%= url('premium.php') %>">See Premium</a>.</p>
+
+  <h2 class="sec-title">View packages</h2>
+  <p class="sec-sub">Your post or blog is shown on Explore and other placements until the views are used up.</p>
+  <div class="packs">
+    <div class="pack"><h3>Starter</h3><p class="big">1,000 views</p><p class="cost">100 pts</p><a class="btn btn-line btn-wide" href="#buy" onclick="alert('Views promotion queued for your next post!');return false;">Buy</a></div>
+    <div class="pack"><h3>Boost</h3><p class="big">5,000 views</p><p class="cost">450 pts</p><a class="btn btn-line btn-wide" href="#buy" onclick="alert('Views promotion queued for your next post!');return false;">Buy</a></div>
+    <div class="pack pack-hot"><span class="ribbon">Popular</span><h3>Popular</h3><p class="big">20,000 views</p><p class="cost">1,600 pts</p><a class="btn btn-fill btn-wide" href="#buy" onclick="alert('Popular promotion queued for your blog!');return false;">Buy</a></div>
+    <div class="pack"><h3>Blast</h3><p class="big">100,000 views</p><p class="cost">7,000 pts</p><a class="btn btn-line btn-wide" href="#buy" onclick="alert('Blast promotion queued for your blog!');return false;">Buy</a></div>
+  </div>
+
+  <h2 class="sec-title">Flat-rate placements</h2>
+  <p class="sec-sub">Prefer a fixed period? Book a placement by the day, week or month.</p>
+  <div class="tiles tiles-3">
+    <div class="tile" style="--c:#ff2bd6"><%- icon('compass') %><h3>Explore: featured blog</h3><p>Top of the Explore page</p><small style="color:var(--cyan)">1 day: 800 pts &middot; 7 days: 4,500 pts</small></div>
+    <div class="tile" style="--c:#19e3ff"><%- icon('flame') %><h3>Front page: featured post</h3><p>Front page for logged-out visitors</p><small style="color:var(--cyan)">1 day: 600 pts &middot; 7 days: 3,500 pts</small></div>
+    <div class="tile" style="--c:#ffd60a"><%- icon('users') %><h3>Sidebar: blogs to follow</h3><p>Suggested blogs next to the feed</p><small style="color:var(--cyan)">1 day: 300 pts &middot; 7 days: 1,800 pts</small></div>
+  </div>
+</main>
+</div><!-- /.wrap -->
+
+<%- include('partials/footer') %>

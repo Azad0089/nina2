@@ -1,0 +1,8 @@
+{
+  "name": "Nina.Sucks",
+  "description": "Adult microblogging platform featuring text, photo, video, quote, link, and chat posts, blogs, and exploration.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

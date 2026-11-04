@@ -1,0 +1,18 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Prevent direct access to sensitive files and directories
+    RewriteRule ^(\.env|\.git|composer\.(json|lock)|package\.(json|lock)|artisan) - [F,L,NC]
+    RewriteRule ^(app|bootstrap|config|database|resources|routes|storage|tests)/ - [F,L,NC]
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Prevent loop if request already begins with /public/
+    RewriteCond %{REQUEST_URI} ^/public/ [NC]
+    RewriteRule ^ - [L]
+
+    # Transparently route all traffic into the public/ directory
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

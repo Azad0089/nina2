@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin &middot; <%= title %> | Nina.Sucks</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="<%= url('assets/favicon-32.png') %>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS Engine -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              pink: '#ff2bd6',
+              cyan: '#19e3ff',
+              dark: '#07030d',
+              surface: '#0f0716',
+              surfaceAlt: '#170a22',
+              border: 'rgba(255, 255, 255, 0.1)',
+            }
+          },
+          fontFamily: {
+            display: ['Unbounded', 'sans-serif'],
+            sans: ['Figtree', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    svg.ic {
+      display: inline-block;
+      vertical-align: middle;
+      width: 1.15rem;
+      height: 1.15rem;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      flex-shrink: 0;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.15rem 0.4rem;
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      margin-left: 0.25rem;
+    }
+    .badge.b-pro, .badge.bd-pro { background-color: rgba(255, 214, 10, 0.2); color: #ffd60a; border: 1px solid rgba(255, 214, 10, 0.4); }
+    .badge.b-id, .badge.bd-id { background-color: rgba(25, 227, 255, 0.2); color: #19e3ff; border: 1px solid rgba(25, 227, 255, 0.4); }
+    .badge.b-vip, .badge.bd-vip { background-color: rgba(255, 43, 214, 0.2); color: #ff2bd6; border: 1px solid rgba(255, 43, 214, 0.4); }
+    .badge svg.ic { width: 0.75rem; height: 0.75rem; }
+    
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #07030d; }
+    ::-webkit-scrollbar-thumb { background: #231633; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3c2457; }
+  </style>
+</head>
+<body class="bg-[#07030d] text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-pink-500 selection:text-white">
+  <%- include('partials/icons') %>
+
+  <div class="flex-1 flex flex-col lg:flex-row min-h-screen">
+
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="w-full lg:w-72 bg-[#0c0514] border-r border-white/10 flex-shrink-0 flex flex-col justify-between p-4 lg:p-6 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto">
+      <div>
+        <!-- Brand Header -->
+        <a href="<%= url('') %>" class="flex items-center gap-3 px-2 py-3 mb-6 rounded-xl hover:bg-white/5 transition group">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-500 to-cyan-400 p-0.5 shadow-lg shadow-pink-500/20 group-hover:scale-105 transition-transform flex items-center justify-center">
+            <div class="w-full h-full bg-[#0c0514] rounded-[10px] flex items-center justify-center text-pink-400 font-display font-black text-sm">
+              N
+            </div>
+          </div>
+          <div>
+            <div class="font-display font-bold text-base tracking-tight text-white flex items-center gap-1.5">
+              <span>Nina.Sucks</span>
+              <span class="text-[10px] bg-pink-500/20 text-pink-400 font-sans px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Admin</span>
+            </div>
+            <p class="text-xs text-slate-400">Control Center (Tailwind)</p>
+          </div>
+        </a>
+
+        <!-- Navigation Links -->
+        <nav class="space-y-1">
+          <div class="px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">Main Control</div>
+          
+          <a href="<%= url('admin') %>" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition <%= section === 'overview' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' %>">
+            <span class="flex items-center gap-3">
+              <%- icon('shield') %>
+              <span>Overview</span>
+            </span>
+          </a>
+
+          <a href="<%= url('admin?section=users') %>" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition <%= section === 'users' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' %>">
+            <span class="flex items-center gap-3">
+              <%- icon('users') %>
+              <span>Users</span>
+            </span>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold <%= section === 'users' ? 'bg-pink-500/20 text-pink-300' : 'bg-white/10 text-slate-300' %>"><%= allUsers.length %></span>
+          </a>
+
+          <a href="<%= url('admin?section=posts') %>" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition <%= section === 'posts' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' %>">
+            <span class="flex items-center gap-3">
+              <%- icon('list') %>
+              <span>Platform Posts</span>
+            </span>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold <%= section === 'posts' ? 'bg-pink-500/20 text-pink-300' : 'bg-white/10 text-slate-300' %>"><%= allPosts.length %></span>
+          </a>
+
+          <div class="pt-4 px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">Marketing & Growth</div>
+
+          <a href="<%= url('admin?section=ads') %>" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition <%= section === 'ads' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' %>">
+            <span class="flex items-center gap-3">
+              <%- icon('megaphone') %>
+              <span>Sponsored Ads</span>
+            </span>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold <%= section === 'ads' ? 'bg-pink-500/20 text-pink-300' : 'bg-white/10 text-slate-300' %>"><%= (typeof allAds !== 'undefined' ? allAds.length : 0) %></span>
+          </a>
+
+          <a href="<%= url('admin?section=slider') %>" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition <%= section === 'slider' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' %>">
+            <span class="flex items-center gap-3">
+              <%- icon('compass') %>
+              <span>Hero Slider</span>
+            </span>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold <%= section === 'slider' ? 'bg-pink-500/20 text-pink-300' : 'bg-white/10 text-slate-300' %>"><%= (typeof heroSlides !== 'undefined' ? heroSlides.length : 0) %></span>
+          </a>
+
+          <div class="pt-4 px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">Trust & Moderation</div>
+
+          <a href="<%= url('admin?section=reports') %>" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition <%= section === 'reports' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' %>">
+            <span class="flex items-center gap-3">
+              <%- icon('flag') %>
+              <span>Reports</span>
+            </span>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold <%= reports.length > 0 ? 'bg-rose-500/20 text-rose-300' : 'bg-white/10 text-slate-300' %>"><%= reports.length %></span>
+          </a>
+
+          <a href="<%= url('admin?section=support') %>" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition <%= section === 'support' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' %>">
+            <span class="flex items-center gap-3">
+              <%- icon('mail') %>
+              <span>Support Desk</span>
+            </span>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-white/10 text-slate-300"><%= tickets.length %></span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="pt-6 border-t border-white/10 space-y-1">
+        <a href="<%= url('') %>" class="flex items-center gap-3 px-3 py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition">
+          <%- icon('left') %>
+          <span>Back to Front Site</span>
+        </a>
+        <a href="<%= url('community') %>" target="_blank" class="flex items-center gap-3 px-3 py-2 text-xs font-semibold text-slate-400 hover:text-cyan-400 rounded-lg hover:bg-white/5 transition">
+          <%- icon('users') %>
+          <span>Community Hub</span>
+        </a>
+        <a href="<%= url('dashboard') %>" class="flex items-center gap-3 px-3 py-2 text-xs font-semibold text-slate-400 hover:text-pink-400 rounded-lg hover:bg-white/5 transition">
+          <%- icon('compass') %>
+          <span>User Dashboard</span>
+        </a>
+        <a href="<%= url('logout') %>" class="flex items-center gap-3 px-3 py-2 text-xs font-semibold text-rose-400 hover:text-rose-300 rounded-lg hover:bg-rose-500/10 transition">
+          <%- icon('login') %>
+          <span>Sign Out</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 min-w-0 p-4 lg:p-8 overflow-y-auto">
+      
+      <!-- TOP HEADER BAR -->
+      <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-white/10">
+        <div>
+          <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+            <span>Admin</span>
+            <span>/</span>
+            <span class="text-pink-400 font-semibold capitalize"><%= section %></span>
+          </div>
+          <h1 class="text-2xl lg:text-3xl font-display font-black tracking-tight text-white flex items-center gap-3">
+            <span>Admin Control Panel</span>
+            <span class="text-sm font-sans font-bold bg-pink-500/20 text-pink-400 px-2.5 py-0.5 rounded-full border border-pink-500/30">Vite & Tailwind Active</span>
+          </h1>
+        </div>
+
+        <div class="flex items-center gap-3 bg-[#0f0716] border border-white/10 px-4 py-2 rounded-xl">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-pink-500 to-cyan-400 flex items-center justify-center font-bold text-black text-sm">
+            <%= initial((currentUser && currentUser.username) || 'A') %>
+          </div>
+          <div>
+            <div class="text-sm font-bold text-white flex items-center gap-1.5">
+              <span><%= (currentUser && currentUser.username) || 'Admin' %></span>
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            </div>
+            <p class="text-[11px] text-slate-400">Master Administrator</p>
+          </div>
+        </div>
+      </header>
+
+      <!-- QUICK SUBNAV TABS -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-6 text-sm font-semibold custom-scrollbar">
+        <a href="<%= url('admin') %>" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition <%= section === 'overview' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' %>">Overview</a>
+        <a href="<%= url('admin?section=users') %>" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition <%= section === 'users' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' %>">Users (<%= allUsers.length %>)</a>
+        <a href="<%= url('admin?section=posts') %>" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition <%= section === 'posts' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' %>">Posts (<%= allPosts.length %>)</a>
+        <a href="<%= url('admin?section=reports') %>" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition <%= section === 'reports' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' %>">Reports (<%= reports.length %>)</a>
+        <a href="<%= url('admin?section=support') %>" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition <%= section === 'support' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' %>">Support (<%= tickets.length %>)</a>
+      </div>
+
+      <!-- KPI METRIC CARDS GRID -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-4 shadow-lg hover:border-pink-500/30 transition group">
+          <div class="text-xs text-slate-400 font-semibold mb-1 flex items-center justify-between">
+            <span>Total Posts</span>
+            <span class="text-pink-400"><%- icon('list') %></span>
+          </div>
+          <div class="text-2xl font-display font-black text-white group-hover:text-pink-400 transition"><%= allPosts.length %></div>
+          <div class="text-[11px] text-slate-400 mt-1">Platform microblogs</div>
+        </div>
+
+        <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-4 shadow-lg hover:border-cyan-500/30 transition group">
+          <div class="text-xs text-slate-400 font-semibold mb-1 flex items-center justify-between">
+            <span>Registered Users</span>
+            <span class="text-cyan-400"><%- icon('users') %></span>
+          </div>
+          <div class="text-2xl font-display font-black text-white group-hover:text-cyan-400 transition"><%= allUsers.length %></div>
+          <div class="text-[11px] text-cyan-400 mt-1 font-semibold">Active Accounts</div>
+        </div>
+
+        <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-4 shadow-lg hover:border-rose-500/30 transition group">
+          <div class="text-xs text-slate-400 font-semibold mb-1 flex items-center justify-between">
+            <span>Open Reports</span>
+            <span class="text-rose-400"><%- icon('flag') %></span>
+          </div>
+          <div class="text-2xl font-display font-black text-white group-hover:text-rose-400 transition"><%= reports.length %></div>
+          <div class="text-[11px] text-slate-400 mt-1">Flagged items</div>
+        </div>
+
+        <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-4 shadow-lg hover:border-emerald-500/30 transition group">
+          <div class="text-xs text-slate-400 font-semibold mb-1 flex items-center justify-between">
+            <span>Support Tickets</span>
+            <span class="text-emerald-400"><%- icon('mail') %></span>
+          </div>
+          <div class="text-2xl font-display font-black text-white group-hover:text-emerald-400 transition"><%= tickets.length %></div>
+          <div class="text-[11px] text-emerald-400 mt-1 font-semibold">Inquiries</div>
+        </div>
+      </div>
+
+      <!-- SECTION: USERS -->
+      <% if (section === 'users') { %>
+        <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-6 shadow-xl">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h2 class="font-display font-bold text-xl text-white">Registered Accounts & Moderation</h2>
+              <p class="text-xs text-slate-400 mt-1">Manage platform members, assign badges and point balances.</p>
+            </div>
+            <span class="text-xs font-bold text-pink-400 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+              <%= allUsers.length %> Total Users
+            </span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300 border-collapse">
+              <thead class="text-xs uppercase bg-white/5 text-slate-400 border-b border-white/10">
+                <tr>
+                  <th class="p-3">ID</th>
+                  <th class="p-3">Username</th>
+                  <th class="p-3">Role</th>
+                  <th class="p-3">Status</th>
+                  <th class="p-3">Points</th>
+                  <th class="p-3">Badges</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5">
+                <% allUsers.forEach(function(u) { %>
+                  <tr class="hover:bg-white/5 transition">
+                    <td class="p-3 font-mono text-xs text-slate-400">#<%= u.id %></td>
+                    <td class="p-3 font-bold text-white">
+                      <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-pink-600/30 text-pink-300 flex items-center justify-center font-bold text-xs">
+                          <%= initial(u.username) %>
+                        </span>
+                        <span>@<%= u.username %></span>
+                      </div>
+                    </td>
+                    <td class="p-3">
+                      <span class="px-2 py-0.5 rounded text-xs font-bold <%= u.role === 'admin' ? 'bg-pink-500/20 text-pink-300' : 'bg-white/10 text-slate-300' %>">
+                        <%= u.role %>
+                      </span>
+                    </td>
+                    <td class="p-3">
+                      <span class="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-300">
+                        <%= u.status || 'active' %>
+                      </span>
+                    </td>
+                    <td class="p-3 font-bold text-white"><%= u.points || 0 %> pts</td>
+                    <td class="p-3"><%- badge(u.badge) %></td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      <!-- SECTION: REPORTS -->
+      <% } else if (section === 'reports') { %>
+        <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-6 shadow-xl">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h2 class="font-display font-bold text-xl text-white">Content Reports & Moderation</h2>
+              <p class="text-xs text-slate-400 mt-1">Review flagged items submitted by the community.</p>
+            </div>
+            <span class="text-xs font-bold text-rose-300 bg-rose-500/20 px-3 py-1.5 rounded-lg border border-rose-500/30">
+              <%= reports.length %> Reports
+            </span>
+          </div>
+
+          <% if (!reports.length) { %>
+            <div class="p-12 text-center text-slate-400">
+              <div class="w-12 h-12 rounded-full bg-white/5 mx-auto mb-3 flex items-center justify-center text-emerald-400"><%- icon('check') %></div>
+              <p class="font-medium">No reports submitted. Community feed is in great standing!</p>
+            </div>
+          <% } else { %>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm text-slate-300 border-collapse">
+                <thead class="text-xs uppercase bg-white/5 text-slate-400 border-b border-white/10">
+                  <tr>
+                    <th class="p-3">Target</th>
+                    <th class="p-3">Target ID</th>
+                    <th class="p-3">Reason</th>
+                    <th class="p-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                  <% reports.forEach(function(r) { %>
+                    <tr class="hover:bg-white/5 transition">
+                      <td class="p-3 font-bold text-pink-400 uppercase text-xs"><%= r.target_type %></td>
+                      <td class="p-3 font-mono text-xs text-slate-400">#<%= r.target_id %></td>
+                      <td class="p-3 text-slate-200"><%= r.reason %></td>
+                      <td class="p-3">
+                        <span class="px-2 py-0.5 rounded text-xs font-bold bg-rose-500/20 text-rose-300">open</span>
+                      </td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+        </div>
+
+      <!-- SECTION: SUPPORT -->
+      <% } else if (section === 'support') { %>
+        <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-6 shadow-xl">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h2 class="font-display font-bold text-xl text-white">Help Desk & Support Inquiries</h2>
+              <p class="text-xs text-slate-400 mt-1">Creator and subscriber questions.</p>
+            </div>
+            <span class="text-xs font-bold text-cyan-300 bg-cyan-500/20 px-3 py-1.5 rounded-lg border border-cyan-500/30">
+              <%= tickets.length %> Inquiries
+            </span>
+          </div>
+
+          <% if (!tickets.length) { %>
+            <div class="p-12 text-center text-slate-400">
+              <div class="w-12 h-12 rounded-full bg-white/5 mx-auto mb-3 flex items-center justify-center text-slate-400"><%- icon('mail') %></div>
+              <p class="font-medium">No support tickets currently waiting.</p>
+            </div>
+          <% } else { %>
+            <div class="space-y-4">
+              <% tickets.forEach(function(t) { %>
+                <div class="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <div class="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
+                    <div>
+                      <span class="font-bold text-white"><%= t.name %></span>
+                      <span class="text-xs text-slate-400 ml-2">&lt;<%= t.email %>&gt;</span>
+                    </div>
+                    <span class="px-2 py-0.5 rounded text-xs font-bold bg-amber-500/20 text-amber-300">
+                      <%= t.topic || 'General' %>
+                    </span>
+                  </div>
+                  <p class="text-sm text-slate-300"><%= t.message %></p>
+                </div>
+              <% }); %>
+            </div>
+          <% } %>
+        </div>
+
+      <!-- DEFAULT SECTION: POSTS OR OVERVIEW -->
+      <% } else if (section === 'posts' || section === 'overview') { %>
+        <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-6 shadow-xl">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h2 class="font-display font-bold text-xl text-white">All Platform Posts & Microblog Content</h2>
+              <p class="text-xs text-slate-400 mt-1">Review live posts, check format tags, and engage.</p>
+            </div>
+            <span class="text-xs font-bold text-pink-400 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+              <%= allPosts.length %> Total Posts
+            </span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300 border-collapse">
+              <thead class="text-xs uppercase bg-white/5 text-slate-400 border-b border-white/10">
+                <tr>
+                  <th class="p-3">ID</th>
+                  <th class="p-3">Blog</th>
+                  <th class="p-3">Format</th>
+                  <th class="p-3">Content</th>
+                  <th class="p-3">Engagement</th>
+                  <th class="p-3">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5">
+                <% allPosts.forEach(function(p) { %>
+                  <tr class="hover:bg-white/5 transition">
+                    <td class="p-3 font-mono text-xs text-slate-400">#<%= p.id %></td>
+                    <td class="p-3 font-bold text-white">
+                      <a href="<%= url('blog/' + p.blog) %>" class="text-pink-400 hover:underline">
+                        @<%= p.blog %>
+                      </a>
+                    </td>
+                    <td class="p-3">
+                      <span class="px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-pink-500/20 text-pink-300">
+                        <%= p.type %>
+                      </span>
+                    </td>
+                    <td class="p-3 text-slate-200 max-w-sm truncate">
+                      <%= (p.heading || p.caption || p.quote || p.title || 'Post #' + p.id).slice(0, 60) %>
+                    </td>
+                    <td class="p-3 text-xs whitespace-nowrap">
+                      <span class="text-pink-400 font-bold">❤️ <%= p.like_count || 0 %></span>
+                      <span class="text-cyan-400 ml-2 font-bold">🔁 <%= p.reblog_count || 0 %></span>
+                    </td>
+                    <td class="p-3 whitespace-nowrap">
+                      <a href="<%= url('post/' + p.id) %>" target="_blank" class="px-2.5 py-1 text-xs font-bold rounded bg-pink-600 hover:bg-pink-500 text-white transition shadow-sm">
+                        View
+                      </a>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% } else if (section === 'ads') { %>
+        <!-- ADS SECTION -->
+        <div class="space-y-6">
+          <div class="p-6 rounded-2xl bg-[#0f0716] border border-white/10">
+            <h2 class="text-lg font-display font-bold text-white mb-1 flex items-center gap-2">
+              <%- icon('plus') %>
+              <span>Create New Sponsored Advertisement</span>
+            </h2>
+            <p class="text-xs text-slate-400 mb-6">Create sitewide sponsored ads, sidebar spotlights, or feed banners with click tracking.</p>
+
+            <form method="POST" action="<%= url('admin/ads/create') %>" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input type="hidden" name="csrf" value="<%= csrfToken %>">
+              <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Ad Campaign Title</label>
+                <input type="text" name="title" required placeholder="e.g. Synthwave Vinyl Collection" class="w-full bg-[#170a22] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500 transition">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Sponsor / Brand Name</label>
+                <input type="text" name="sponsor_name" placeholder="e.g. Retro Sound Records" class="w-full bg-[#170a22] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500 transition">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Destination Link URL</label>
+                <input type="url" name="link_url" required placeholder="https://..." class="w-full bg-[#170a22] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500 transition">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Image Asset / URL</label>
+                <input type="text" name="image_url" value="hero.jpg" placeholder="hero.jpg or https://..." class="w-full bg-[#170a22] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500 transition">
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Description / Promotional Copy</label>
+                <textarea name="description" rows="2" placeholder="Brief advertising message displayed beneath the title" class="w-full bg-[#170a22] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500 transition"></textarea>
+              </div>
+
+              <div class="md:col-span-2 pt-2">
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-600 hover:from-pink-400 hover:to-fuchsia-500 text-white font-bold text-sm shadow-lg shadow-pink-500/20 transition">
+                  Publish Sponsored Advertisement
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-[#0f0716] border border-white/10">
+            <h2 class="text-lg font-display font-bold text-white mb-4">Active Advertisements (<%= (typeof allAds !== 'undefined' ? allAds.length : 0) %>)</h2>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm text-slate-300">
+                <thead class="text-xs uppercase bg-[#170a22] text-slate-400 border-b border-white/10">
+                  <tr>
+                    <th class="p-3">Ad Title</th>
+                    <th class="p-3">Sponsor</th>
+                    <th class="p-3">Destination</th>
+                    <th class="p-3">Status</th>
+                    <th class="p-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                  <% (typeof allAds !== 'undefined' ? allAds : []).forEach(function(ad) { %>
+                    <tr class="hover:bg-white/5">
+                      <td class="p-3 font-semibold text-white"><%= ad.title %></td>
+                      <td class="p-3 text-xs text-yellow-400 font-bold"><%= ad.sponsor_name || 'Direct' %></td>
+                      <td class="p-3 text-xs text-cyan-400 truncate max-w-xs"><a href="<%= ad.link_url %>" target="_blank"><%= ad.link_url %></a></td>
+                      <td class="p-3">
+                        <span class="px-2 py-0.5 rounded text-xs font-bold <%= ad.is_active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300' %>">
+                          <%= ad.is_active ? 'Active' : 'Paused' %>
+                        </span>
+                      </td>
+                      <td class="p-3 flex items-center gap-2">
+                        <form method="POST" action="<%= url('admin/ads/' + ad.id + '/toggle') %>">
+                          <button type="submit" class="px-2.5 py-1 text-xs rounded bg-white/10 hover:bg-white/20 text-white font-bold transition">
+                            <%= ad.is_active ? 'Pause' : 'Activate' %>
+                          </button>
+                        </form>
+                        <form method="POST" action="<%= url('admin/ads/' + ad.id + '/delete') %>" onsubmit="return confirm('Remove ad?');">
+                          <button type="submit" class="px-2.5 py-1 text-xs rounded bg-rose-600/30 hover:bg-rose-600 text-rose-200 font-bold transition">
+                            Delete
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      <% } else if (section === 'slider') { %>
+        <!-- SLIDER SECTION -->
+        <div class="space-y-6">
+          <div class="p-6 rounded-2xl bg-[#0f0716] border border-white/10">
+            <h2 class="text-lg font-display font-bold text-white mb-1 flex items-center gap-2">
+              <%- icon('plus') %>
+              <span>Add New Homepage Hero Slide</span>
+            </h2>
+            <p class="text-xs text-slate-400 mb-6">Add high-converting slides to the homepage carousel with custom imagery, glowing colors, and call-to-actions.</p>
+
+            <form method="POST" action="<%= url('admin/slider/add') %>" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input type="hidden" name="csrf" value="<%= csrfToken %>">
+              <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Slide Main Headline</label>
+                <input type="text" name="title" required placeholder="e.g. Follow your desires." class="w-full bg-[#170a22] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500 transition">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Slide Subtext / Copy</label>
+                <input type="text" name="text" required placeholder="Short descriptive copy for the banner" class="w-full bg-[#170a22] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500 transition">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Background Image Asset</label>
+                <input type="text" name="img" value="hero.jpg" placeholder="hero.jpg or image URL" class="w-full bg-[#170a22] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500 transition">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Accent Glow Color</label>
+                <input type="color" name="color" value="#ff2bd6" class="w-12 h-10 rounded-lg cursor-pointer bg-transparent border-0">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Primary Button (Label & URL)</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <input type="text" name="cta1_label" value="Create blog" placeholder="Label" class="bg-[#170a22] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+                  <input type="text" name="cta1_url" value="register.php" placeholder="register.php" class="bg-[#170a22] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Secondary Button (Label & URL)</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <input type="text" name="cta2_label" value="Explore feed" placeholder="Label" class="bg-[#170a22] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+                  <input type="text" name="cta2_url" value="#feed" placeholder="#feed" class="bg-[#170a22] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+                </div>
+              </div>
+
+              <div class="md:col-span-2 pt-2">
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-600 hover:from-pink-400 hover:to-fuchsia-500 text-white font-bold text-sm shadow-lg shadow-pink-500/20 transition">
+                  Add Slide to Hero Slider
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-[#0f0716] border border-white/10">
+            <h2 class="text-lg font-display font-bold text-white mb-4">Current Active Hero Slides (<%= (typeof heroSlides !== 'undefined' ? heroSlides.length : 0) %>)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <% (typeof heroSlides !== 'undefined' ? heroSlides : []).forEach(function(s, idx) { %>
+                <div class="rounded-xl border border-white/10 bg-[#170a22] p-4 flex flex-col justify-between">
+                  <div>
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-white/10 text-white">#<%= idx + 1 %></span>
+                      <span class="w-4 h-4 rounded-full border border-white/20" style="background-color: <%= s.color || '#ff2bd6' %>;"></span>
+                    </div>
+                    <h3 class="font-display font-bold text-base text-white mb-1 truncate"><%= s.title %></h3>
+                    <p class="text-xs text-slate-400 line-clamp-2 mb-3"><%= s.text %></p>
+                    <div class="text-[11px] text-slate-500">Image: <%= s.img %></div>
+                  </div>
+                  <div class="pt-3 mt-3 border-t border-white/10 flex justify-between items-center">
+                    <span class="text-xs text-slate-400">Slide <%= idx + 1 %></span>
+                    <form method="POST" action="<%= url('admin/slider/' + idx + '/delete') %>" onsubmit="return confirm('Remove slide?');">
+                      <button type="submit" class="px-2 py-1 text-xs font-bold rounded bg-rose-600/30 text-rose-300 hover:bg-rose-600 hover:text-white transition">
+                        Remove
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+    </main>
+  </div>
+</body>
+</html>

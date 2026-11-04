@@ -1,0 +1,828 @@
+/* Nina.Sucks front-end template: behavior
+   Sections: 1) menu  2) hero slider  3) age gate + cookie  4) feed  */
+(function(){
+  'use strict';
+  const $  = (s,r=document)=>r.querySelector(s);
+  const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+  const store = {
+    get(k){try{return localStorage.getItem(k)}catch(e){return null}},
+    set(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  };
+
+  /* ---------- 1) mobile & desktop menu ---------- */
+  const side=$('#side'), scrim=$('#scrim'), menuBtn=$('#menuBtn');
+  function toggleMenu(forceOpen){
+    if (!side) return;
+    const isMobile = window.innerWidth <= 900;
+    if (isMobile) {
+      const open = typeof forceOpen === 'boolean' ? forceOpen : !side.classList.contains('open');
+      side.classList.toggle('open', open);
+      if (scrim) scrim.classList.toggle('show', open);
+      if (menuBtn) menuBtn.setAttribute('aria-expanded', open);
+      document.body.classList.toggle('menu-open', open);
+    } else {
+      const collapsed = typeof forceOpen === 'boolean' ? !forceOpen : !document.body.classList.contains('side-collapsed');
+      document.body.classList.toggle('side-collapsed', collapsed);
+      store.set('sideCollapsed', collapsed ? '1' : '0');
+      if (menuBtn) menuBtn.setAttribute('aria-expanded', !collapsed);
+    }
+  }
+
+  // Restore desktop sidebar preference
+  if (window.innerWidth > 900 && store.get('sideCollapsed') === '1') {
+    document.body.classList.add('side-collapsed');
+  }
+
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('#menuBtn, .menu-btn');
+    if (btn) {
+      e.preventDefault();
+      toggleMenu();
+      return;
+    }
+    const closeBtn = e.target.closest('#sideClose, .side-close');
+    if (closeBtn) {
+      e.preventDefault();
+      toggleMenu(false);
+      return;
+    }
+    if (scrim && e.target === scrim) {
+      toggleMenu(false);
+      return;
+    }
+    // Auto-close drawer on mobile when clicking any link inside sidebar
+    if (window.innerWidth <= 900 && side && side.classList.contains('open')) {
+      const navLink = e.target.closest('.side-nav a, .side-foot a, .side-auth a');
+      if (navLink) {
+        toggleMenu(false);
+      }
+    }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') toggleMenu(false);
+  });
+
+  /* ---------- 2) hero slider ---------- */
+  (function(){
+    const hero=$('#hero'); if(!hero) return;              /* only on the home page */
+    const slides=$$('.slide',hero), dots=$$('.dot',hero);
+    if (!slides.length) return;
+    let cur=0;
+    function go(n){
+      cur=(n+slides.length)%slides.length;
+      slides.forEach((s,i)=>{ s.classList.toggle('active',i===cur); s.setAttribute('aria-hidden',i!==cur); });
+      dots.forEach((d,i)=>{
+        d.classList.remove('active'); d.classList.toggle('seen',i<cur);
+        d.setAttribute('aria-selected',i===cur);
+      });
+      void hero.offsetWidth;               /* restart progress animation */
+      if (dots[cur]) dots[cur].classList.add('active');
+    }
+    dots.forEach((d,i)=>{
+      d.addEventListener('click',(e)=>{ e.preventDefault(); go(i); });
+      const iEl = $('i',d);
+      if (iEl) {
+        iEl.addEventListener('animationend',()=>go(cur+1));   /* auto-advance */
+      }
+    });
+
+    const nextBtn = $('#next');
+    const prevBtn = $('#prev');
+    if (nextBtn) {
+      nextBtn.addEventListener('click',(e)=>{ e.preventDefault(); e.stopPropagation(); go(cur+1); });
+    }
+    if (prevBtn) {
+      prevBtn.addEventListener('click',(e)=>{ e.preventDefault(); e.stopPropagation(); go(cur-1); });
+    }
+
+    /* Global click delegation so clicks on icons or svgs inside prev/next buttons always work */
+    document.addEventListener('click', (e) => {
+      const nextTarget = e.target.closest('#next, [data-slide-next]');
+      if (nextTarget) { e.preventDefault(); go(cur + 1); return; }
+      const prevTarget = e.target.closest('#prev, [data-slide-prev]');
+      if (prevTarget) { e.preventDefault(); go(cur - 1); return; }
+    });
+
+    const pause=()=>hero.classList.add('paused'), play=()=>hero.classList.remove('paused');
+    hero.addEventListener('mouseenter',pause); hero.addEventListener('mouseleave',play);
+    hero.addEventListener('focusin',pause);    hero.addEventListener('focusout',play);
+    document.addEventListener('visibilitychange',()=>document.hidden?pause():play());
+    document.addEventListener('keydown',e=>{
+      if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
+      if (e.key==='ArrowRight') go(cur+1);
+      if (e.key==='ArrowLeft')  go(cur-1);
+    });
+
+    let x0=null;                                                /* swipe */
+    hero.addEventListener('pointerdown',e=>{ x0=e.clientX; });
+    hero.addEventListener('pointerup',e=>{
+      if(x0===null) return; const dx=e.clientX-x0; x0=null;
+      if(Math.abs(dx)>50) go(dx<0?cur+1:cur-1);
+    });
+    go(0);
+  })();
+
+  /* ---------- 3) age gate + cookie notice ----------
+     The overlay is added by JavaScript only. The page content is always in the HTML,
+     so search engines can read every page. Known crawlers never see the gate. */
+  (function(){
+    const gate=$('#gate'), cookie=$('#cookie');
+    const bot=/bot|crawl|spider|slurp|bing|duckduck|baidu|yandex|facebookexternalhit|lighthouse|preview/i.test(navigator.userAgent);
+    function showCookie(){ if(!bot && !store.get('cookieOk')) cookie.hidden=false; }
+    if(!bot && !store.get('age18')){
+      gate.hidden=false; document.body.classList.add('locked'); $('#gateYes').focus();
+    } else showCookie();
+    $('#gateYes').addEventListener('click',()=>{
+      store.set('age18','1'); gate.hidden=true; if(!$('.modal:not([hidden])')) document.body.classList.remove('locked'); showCookie();
+    });
+    $('#cookieOk').addEventListener('click',()=>{ store.set('cookieOk','1'); cookie.hidden=true; });
+  })();
+
+  /* ---------- 4) feed: PHP/Node renders first posts, feed.php returns next batches ----------
+     Grid view = masonry columns, list view = one wide column. Order is always newest to oldest. */
+  (function(){
+    const feed=$('#feed'), sentinel=$('#sentinel');
+    if(!feed||!sentinel) return;                           /* only on the home page */
+    const sText=$('.s-text',sentinel);
+    const loader=$('.loader',sentinel);
+    const loadMoreBtn=$('#loadMoreBtn',sentinel);
+    const base=(window.NINA&&window.NINA.base)||'';
+    const mobileMQ=matchMedia('(max-width:640px)');
+    const BATCH=6, FIRST=8;
+    let items=[...feed.querySelectorAll(':scope > .card')];   /* cards printed by server */
+    let filter=feed.dataset.type||'all', offset=parseInt(feed.dataset.next,10)||items.length;
+    let total=parseInt(feed.dataset.total,10)||999;
+    let view=store.get('feedView')||feed.dataset.view||'grid';
+    let loading=false, done=(offset>=total), cols=[];
+
+    /* --- layout --- */
+    function colCount(){ return view==='list'||mobileMQ.matches?1:2; }
+
+    function rebalance() {
+      if (!cols || cols.length < 2 || view === 'list' || mobileMQ.matches) return;
+      const validCards = items.filter(c => c && c.nodeType === 1);
+      if (!validCards.length) return;
+
+      cols.forEach(c => { c.innerHTML = ''; });
+
+      validCards.forEach((card, idx) => {
+        const h0 = cols[0].offsetHeight;
+        const h1 = cols[1].offsetHeight;
+        let target = cols[idx % cols.length];
+        if (Math.abs(h0 - h1) > 25) {
+          target = h0 <= h1 ? cols[0] : cols[1];
+        }
+        target.appendChild(card);
+      });
+    }
+
+    function bindMediaListeners(root = feed) {
+      if (!root) return;
+      const mediaElements = root.querySelectorAll ? root.querySelectorAll('img, video') : [];
+      mediaElements.forEach(m => {
+        if (m.dataset.rebalanceBound) return;
+        m.dataset.rebalanceBound = '1';
+        const trigger = () => { setTimeout(rebalance, 15); };
+        m.addEventListener('load', trigger);
+        m.addEventListener('error', trigger);
+        m.addEventListener('loadedmetadata', trigger);
+      });
+    }
+
+    function build(){
+      feed.dataset.view=view;
+      feed.style.minHeight=feed.offsetHeight+'px';          /* avoid a scroll jump while rebuilding */
+      feed.innerHTML=''; cols=[];
+      for(let i=0;i<colCount();i++){ const c=document.createElement('div'); c.className='col'; feed.appendChild(c); cols.push(c); }
+      rebalance();
+      bindMediaListeners();
+      feed.style.minHeight='';
+      setTimeout(rebalance, 200);
+      setTimeout(rebalance, 600);
+    }
+
+    function place(el){
+      if (!cols.length) build();
+      if (cols.length === 1) {
+        cols[0].appendChild(el);
+      } else {
+        const h0 = cols[0].offsetHeight;
+        const h1 = cols[1].offsetHeight;
+        if (Math.abs(h0 - h1) <= 25) {
+          const c0 = cols[0].children.length;
+          const c1 = cols[1].children.length;
+          (c0 <= c1 ? cols[0] : cols[1]).appendChild(el);
+        } else {
+          (h0 <= h1 ? cols[0] : cols[1]).appendChild(el);
+        }
+      }
+      bindMediaListeners(el);
+    }
+
+    function setView(v){
+      view=v; store.set('feedView',v);
+      $$('.view-toggle button').forEach(b=>{ const on=b.dataset.view===v; b.classList.toggle('is-on',on); b.setAttribute('aria-pressed',on); });
+      build();
+    }
+
+    /* --- data --- */
+    async function fetchCards(off,limit){
+      const res=await fetch(`${base}/feed.php?offset=${off}&limit=${limit}&type=${encodeURIComponent(filter)}`,{headers:{'X-Requested-With':'fetch'}});
+      if(!res.ok) throw new Error(res.status);
+      const tpl=document.createElement('template'); tpl.innerHTML=(await res.text()).trim();
+      return [...tpl.content.children].filter(el=>el.classList.contains('card'));
+    }
+    function setStatus(html,end,showBtn){
+      sentinel.hidden=false;
+      if (loader) loader.style.display=end?'none':'';
+      if (sText) {
+        sText.innerHTML=html;
+        sText.style.display=html?'':'none';
+      }
+      if (loadMoreBtn) loadMoreBtn.style.display=showBtn?'inline-flex':'none';
+    }
+    async function more(limit=BATCH){
+      if(loading||done) return;
+      loading=true;
+      setStatus('Loading older posts...', false, false);
+      try{
+        const cards=await fetchCards(offset,limit);
+        if(!cards.length){
+          done=true;
+          setStatus('You have reached the oldest post.', true, false);
+          if (io) io.unobserve(sentinel);
+        } else {
+          offset+=cards.length;
+          cards.forEach(c=>{ items.push(c); place(c); });
+          if(cards.length < limit || offset >= total){
+            done=true;
+            setStatus('You have reached the oldest post.', true, false);
+            if (io) io.unobserve(sentinel);
+          } else {
+            setStatus('', true, true);
+          }
+        }
+      }catch(err){
+        setStatus('Could not load posts. <button type="button" id="retry">Try again</button>', true, false);
+        const retryBtn=$('#retry');
+        if (retryBtn) {
+          retryBtn.addEventListener('click',()=>{ loading=false; more(); },{once:true});
+        }
+        loading=false;
+        return;
+      }
+      loading=false;
+      if (!done && io) {
+        io.unobserve(sentinel);
+        io.observe(sentinel);
+      }
+    }
+    async function reset(newFilter){
+      filter=newFilter; offset=0; done=false; items=[]; loading=true;
+      feed.innerHTML=''; setStatus('Loading posts...', false, false);
+      try{
+        const cards=await fetchCards(0,FIRST);
+        offset=cards.length; items=cards; build();
+        if(!cards.length){
+          feed.innerHTML='<p class="empty">No posts in this format yet.</p>';
+          done=true;
+          setStatus('', true, false);
+        } else if (cards.length < FIRST) {
+          done=true;
+          setStatus('You have reached the oldest post.', true, false);
+        } else {
+          setStatus('', true, true);
+        }
+      }catch(err){ feed.innerHTML='<p class="empty">Could not load posts.</p>'; }
+      loading=false;
+      if (!done && io) {
+        io.unobserve(sentinel);
+        io.observe(sentinel);
+      }
+    }
+
+    /* interactions (like/follow/reblog/report/video) are wired sitewide in section 4b below */
+
+    $$('.view-toggle button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+
+    const chips=$$('.filters .chip');
+    chips.forEach(ch=>ch.addEventListener('click',e=>{
+      const f = ch.dataset.f || (new URL(ch.href, location.origin)).searchParams.get('type') || 'all';
+      if (feed && sentinel) {
+        e.preventDefault();
+        chips.forEach(c=>c.classList.remove('is-on')); ch.classList.add('is-on');
+        history.replaceState(null,'',f==='all'?location.pathname:`?type=${encodeURIComponent(f)}`);
+        reset(f);
+      }
+    }));
+
+    mobileMQ.addEventListener('change',build);
+
+    if (offset >= total) {
+      done = true;
+      setStatus('You have reached the oldest post.', true, false);
+    } else {
+      setStatus('', true, true);
+    }
+
+    sentinel.addEventListener('click', () => {
+      if (!done && !loading) more();
+    });
+
+    /* endless scroll: never blocked by a login wall, with iframe scroll fallback */
+    let io = null;
+    if (typeof IntersectionObserver !== 'undefined') {
+      io = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting && !loading && !done) more();
+      }, { rootMargin: '600px 0px' });
+      io.observe(sentinel);
+    }
+
+    let scrollTimeout = null;
+    window.addEventListener('scroll', () => {
+      if (loading || done) return;
+      if (scrollTimeout) return;
+      scrollTimeout = setTimeout(() => {
+        scrollTimeout = null;
+        const rect = sentinel.getBoundingClientRect();
+        if (rect.top <= window.innerHeight + 600) {
+          more();
+        }
+      }, 150);
+    }, { passive: true });
+
+    setView(view);                 /* builds the columns from the cards rendered */
+  })();
+
+  /* ---------- 4b) card interactions: comments / like / follow / reblog / report / play video ----------
+     Works on every page that shows post cards (home feed, trending, a blog, a single post),
+     not just the infinite-scroll home page. */
+  (function(){
+    function requireLogin(){
+      if(!(window.NINA&&window.NINA.loggedIn)){
+        const loginModal = document.querySelector('.modal[data-name="login"]');
+        if (loginModal) {
+          document.querySelectorAll('.modal').forEach(x => x.hidden = (x !== loginModal));
+          document.body.classList.add('locked');
+          const inp = loginModal.querySelector('input:not([type=hidden])');
+          if (inp) inp.focus();
+        } else {
+          location.href = (window.NINA && window.NINA.loginUrl) || 'login.php';
+        }
+        return false;
+      }
+      return true;
+    }
+
+    async function postAction(path, data){
+      const csrfToken = (window.NINA && window.NINA.csrf) || '';
+      const body = new URLSearchParams({ _token: csrfToken, csrf: csrfToken, ...data });
+      const base = (window.NINA && window.NINA.base) || '';
+      const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+      const res = await fetch(`${base}/${cleanPath}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-CSRF-TOKEN': csrfToken,
+          'Accept': 'application/json'
+        },
+        body
+      });
+      return res.json();
+    }
+
+    // Dynamic Comments Modal Logic
+    const commentsModal = document.getElementById('commentsModal');
+    const commentsList = document.getElementById('commentsList');
+    const commentPostIdInput = document.getElementById('commentPostId');
+    const modalPostLink = document.getElementById('modalPostLink');
+    const commentsCountBadge = document.getElementById('commentsCountBadge');
+    const inlineCommentForm = document.getElementById('inlineCommentForm');
+
+    async function openCommentsModal(postId, postTitle) {
+      if (!commentsModal) return;
+      if (commentPostIdInput) commentPostIdInput.value = postId;
+      if (modalPostLink) {
+        modalPostLink.textContent = postTitle ? `"${postTitle.slice(0, 50)}${postTitle.length > 50 ? '...' : ''}"` : `Post #${postId}`;
+        modalPostLink.href = `${(window.NINA && window.NINA.base) || ''}/post.php?id=${postId}`;
+      }
+      if (commentsList) {
+        commentsList.innerHTML = '<div style="text-align:center;padding:30px;color:var(--mute);"><div style="display:inline-block;width:24px;height:24px;border:3px solid var(--line);border-top-color:var(--pink);border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:10px;"></div><p style="font-size:13px;">Loading discussion...</p></div>';
+      }
+
+      // Show modal
+      document.querySelectorAll('.modal').forEach(x => x.hidden = (x !== commentsModal));
+      document.body.classList.add('locked');
+
+      try {
+        const base = (window.NINA && window.NINA.base) || '';
+        const res = await fetch(`${base}/actions/comments.php?post_id=${encodeURIComponent(postId)}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        const data = await res.json();
+        if (data && data.ok) {
+          if (commentsCountBadge) commentsCountBadge.textContent = `${data.count} comment${data.count === 1 ? '' : 's'}`;
+          renderComments(data.comments || []);
+        } else {
+          if (commentsList) commentsList.innerHTML = '<div style="text-align:center;padding:25px;color:var(--mute);font-size:13.5px;">No comments yet. Start the conversation below!</div>';
+        }
+      } catch (err) {
+        if (commentsList) commentsList.innerHTML = '<div style="text-align:center;padding:25px;color:var(--pink);font-size:13.5px;">Could not load comments. Please check your connection.</div>';
+      }
+    }
+
+    function renderComments(comments) {
+      if (!commentsList) return;
+      if (!comments || comments.length === 0) {
+        commentsList.innerHTML = '<div style="text-align:center;padding:25px;color:var(--mute);font-size:13.5px;">No comments yet. Be the first to share your thoughts!</div>';
+        return;
+      }
+
+      commentsList.innerHTML = comments.map(c => `
+        <article class="comment-item" style="display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+          ${c.avatar ? `
+            <img src="${c.avatar}" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+          ` : `
+            <span class="av" style="--c:var(--cyan);width:34px;height:34px;font-size:13px;font-weight:700;flex-shrink:0;">${(c.username || 'U').charAt(0).toUpperCase()}</span>
+          `}
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
+              <b style="font-size:13.5px;color:#fff;">${escapeHtml(c.username || 'Anonymous')}</b>
+              <small style="font-size:11.5px;color:var(--mute);">${c.created_at || 'just now'}</small>
+            </div>
+            <p style="font-size:13.5px;color:var(--text);line-height:1.5;margin:0;white-space:pre-wrap;word-break:break-word;">${escapeHtml(c.body || c.content || '')}</p>
+          </div>
+        </article>
+      `).join('');
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+
+    // Handle comment submit via Ajax
+    if (inlineCommentForm) {
+      inlineCommentForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const commentInput = document.getElementById('commentInput');
+        const submitBtn = document.getElementById('commentSubmitBtn');
+        const postId = commentPostIdInput ? commentPostIdInput.value : '';
+        const bodyText = commentInput ? commentInput.value.trim() : '';
+
+        if (!postId || !bodyText) return;
+
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Posting...';
+        }
+
+        try {
+          const r = await postAction('actions/comment.php', { post_id: postId, comment: bodyText });
+          if (r && r.ok) {
+            if (commentInput) commentInput.value = '';
+            // Update comments list
+            if (commentsList) {
+              const emptyMsg = commentsList.querySelector('div');
+              if (emptyMsg && emptyMsg.textContent.includes('No comments')) {
+                commentsList.innerHTML = '';
+              }
+              const newCommentEl = document.createElement('div');
+              newCommentEl.innerHTML = `
+                <article class="comment-item" style="display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(255,43,214,0.04);border-radius:4px;">
+                  <span class="av" style="--c:var(--pink);width:34px;height:34px;font-size:13px;font-weight:700;flex-shrink:0;">${((r.comment && r.comment.username) || (window.NINA && window.NINA.username) || 'U').charAt(0).toUpperCase()}</span>
+                  <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
+                      <b style="font-size:13.5px;color:#fff;">${escapeHtml((r.comment && r.comment.username) || (window.NINA && window.NINA.username) || 'You')}</b>
+                      <small style="font-size:11.5px;color:var(--pink);">just now</small>
+                    </div>
+                    <p style="font-size:13.5px;color:var(--text);line-height:1.5;margin:0;white-space:pre-wrap;word-break:break-word;">${escapeHtml(bodyText)}</p>
+                  </div>
+                </article>
+              `;
+              commentsList.appendChild(newCommentEl.firstElementChild);
+            }
+
+            // Update comment count on post card
+            const cardBtn = document.querySelector(`.comment-btn[data-post-id="${postId}"]`);
+            if (cardBtn) {
+              const badgeSpan = cardBtn.querySelector('span');
+              if (badgeSpan) {
+                const currentCount = parseInt(badgeSpan.textContent, 10) || 0;
+                badgeSpan.textContent = currentCount + 1;
+              }
+            }
+
+            if (commentsCountBadge) {
+              const currentTotal = commentsList ? commentsList.querySelectorAll('.comment-item').length : 1;
+              commentsCountBadge.textContent = `${currentTotal} comment${currentTotal === 1 ? '' : 's'}`;
+            }
+          } else {
+            alert(r.message || 'Could not post comment.');
+          }
+        } catch (err) {
+          alert('Failed to post comment. Please try again.');
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Post Comment';
+          }
+        }
+      });
+    }
+
+    document.addEventListener('click', async e => {
+      // 1. In-page comment modal trigger
+      const commentBtn = e.target.closest('.comment-btn');
+      if (commentBtn) {
+        e.preventDefault();
+        const postId = commentBtn.dataset.postId || (commentBtn.closest('[data-post-id]') && commentBtn.closest('[data-post-id]').dataset.postId);
+        const postTitle = commentBtn.dataset.postTitle || '';
+        if (postId) {
+          openCommentsModal(postId, postTitle);
+        }
+        return;
+      }
+
+      const play = e.target.closest('.play');
+      if (play) {
+        const fig = play.closest('figure');
+        if (fig) {
+          const img = $('img', fig);
+          let vid = $('video', fig);
+          const src = play.dataset.videoSrc || (vid && vid.src) || (img && img.src);
+          if (!vid && src) {
+            vid = document.createElement('video');
+            vid.controls = true;
+            vid.preload = 'metadata';
+            vid.playsInline = true;
+            vid.style.width = '100%';
+            vid.style.maxHeight = '560px';
+            vid.style.borderRadius = '4px';
+            vid.style.objectFit = 'contain';
+            vid.style.background = '#000';
+            fig.appendChild(vid);
+          }
+          if (vid && src) {
+            if (!vid.src || vid.src !== src) vid.src = src;
+            vid.controls = true;
+            vid.style.display = 'block';
+            if (img) img.style.display = 'none';
+            play.style.display = 'none';
+            const dur = fig.querySelector('.dur');
+            if (dur) dur.style.display = 'none';
+            vid.play().catch(() => {});
+          }
+        }
+        return;
+      }
+
+      const like = e.target.closest('.like');
+      if (like) {
+        if (!requireLogin()) return;
+        const id = like.dataset.postId || like.closest('[data-post-id]').dataset.postId;
+        like.classList.toggle('on');
+        const r = await postAction('actions/like.php', { post_id: id });
+        if (r && r.ok) {
+          like.classList.toggle('on', r.liked);
+          const s = like.querySelector('span');
+          if (s) s.textContent = r.count;
+        }
+        return;
+      }
+
+      const rb = e.target.closest('.reblog');
+      if (rb) {
+        if (!requireLogin()) return;
+        const r = await postAction('actions/reblog.php', { post_id: rb.dataset.postId });
+        if (r && r.ok) {
+          const s = rb.querySelector('span');
+          if (s) s.textContent = (parseInt(s.textContent, 10) || 0) + 1;
+          rb.classList.add('on');
+        } else {
+          alert(r.message || 'Could not reblog.');
+        }
+        return;
+      }
+
+      const rep = e.target.closest('.report');
+      if (rep) {
+        const reason = prompt('Tell us what\'s wrong with this post:');
+        if (reason === null) return;
+        const r = await postAction('actions/report.php', { target_type: 'post', target_id: rep.dataset.postId, reason });
+        alert((r && r.message) || 'Reported.');
+        return;
+      }
+
+      const delBtn = e.target.closest('.post-delete-btn, .btn-del-post');
+      if (delBtn) {
+        const postId = delBtn.dataset.postId || delBtn.closest('[data-post-id]')?.dataset.postId;
+        if (!postId) return;
+        if (!confirm('Are you sure you want to permanently delete this post? This action cannot be undone.')) return;
+        const originalText = delBtn.innerHTML;
+        delBtn.style.opacity = '0.5';
+        delBtn.style.pointerEvents = 'none';
+        const r = await postAction('actions/delete-post.php', { post_id: postId });
+        if (r && r.ok) {
+          const card = delBtn.closest('.card, [data-post-id="' + postId + '"], tr');
+          if (card) {
+            card.style.transition = 'all 0.3s ease';
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.92)';
+            setTimeout(() => {
+              card.remove();
+              if (window.location.pathname.includes('/post/') || window.location.pathname.includes('/post.php')) {
+                window.location.href = '/';
+              }
+            }, 300);
+          } else {
+            location.reload();
+          }
+        } else {
+          delBtn.style.opacity = '1';
+          delBtn.style.pointerEvents = '';
+          delBtn.innerHTML = originalText;
+          alert((r && r.message) || 'Could not delete post.');
+        }
+        return;
+      }
+
+      const f = e.target.closest('.follow');
+      if (f && f.dataset.blog) {
+        if (!requireLogin()) return;
+        const blogSlug = f.dataset.blog;
+        const r = await postAction('actions/follow.php', { blog: blogSlug });
+        if (r && r.ok) {
+          const isNowFollowing = !!r.following;
+          // Synchronize all follow buttons on the page for this blog
+          document.querySelectorAll(`.follow[data-blog="${blogSlug}"]`).forEach(btn => {
+            btn.classList.toggle('on', isNowFollowing);
+            btn.textContent = isNowFollowing ? 'Following' : 'Follow';
+          });
+        }
+      }
+    });
+  })();
+
+  /* ---------- 5) login / register / forgot-password popups ----------
+     Links and buttons with data-modal="login|register|forgot" open a popup.
+     Their real href (login.php etc.) still works for visitors without JavaScript. */
+  (function(){
+    const modals=$$('.modal'); let opener=null;
+    const gateOpen=()=>!$('#gate').hidden;
+    function open(name){
+      const m=modals.find(x=>x.dataset.name===name); if(!m) return;
+      if(!$('.modal:not([hidden])')) opener=document.activeElement;
+      modals.forEach(x=>x.hidden=(x!==m));
+      document.body.classList.add('locked'); toggleMenu(false);
+      const f=$('input:not([type=hidden])',m); if(f&&!gateOpen()) f.focus();
+    }
+    function close(){
+      modals.forEach(x=>x.hidden=true);
+      if(!gateOpen()) document.body.classList.remove('locked');
+      if(opener&&opener.focus) opener.focus();
+    }
+    document.addEventListener('click',e=>{
+      const trg=e.target.closest('[data-modal]');
+      if(trg){ e.preventDefault(); open(trg.dataset.modal); return; }
+      if(e.target.classList.contains('modal')||e.target.closest('[data-close]')){ close(); return; }
+      const pw=e.target.closest('.pw-toggle');
+      if(pw){
+        const inp=$('input',pw.parentElement), show=inp.type==='password';
+        inp.type=show?'text':'password'; pw.classList.toggle('on',show);
+        pw.setAttribute('aria-label',show?'Hide password':'Show password');
+      }
+    });
+    document.addEventListener('keydown',e=>{
+      const m=$('.modal:not([hidden])'); if(!m) return;
+      if(e.key==='Escape'){ close(); return; }
+      if(e.key==='Tab'){                                  /* keep focus inside the popup */
+        const f=$$('a[href],button:not([disabled]),input:not([type=hidden]),iframe',m).filter(x=>x.offsetParent!==null);
+        if(!f.length) return;
+        const first=f[0], last=f[f.length-1];
+        if(e.shiftKey&&document.activeElement===first){ e.preventDefault(); last.focus(); }
+        else if(!e.shiftKey&&document.activeElement===last){ e.preventDefault(); first.focus(); }
+      }
+    });
+    /* open from PHP ($open_modal) or from the URL hash, e.g. /#login */
+    const start=(window.NINA&&window.NINA.openModal)||location.hash.replace('#','');
+    if(['login','register','forgot'].includes(start)) open(start);
+  })();
+
+  /* ---------- 6) Profile link copy & share handler ---------- */
+  window.shareOrCopyProfileLink = function(url, btn) {
+    if (!url) url = window.location.href;
+    
+    function notify(button) {
+      if (!button) return;
+      button.style.color = '#19e3ff';
+      var badge = button.closest('.profile-link-badge');
+      var tt = badge ? badge.querySelector('.copy-tooltip') : null;
+      if (tt) {
+        tt.style.display = 'block';
+        setTimeout(function() {
+          tt.style.display = 'none';
+          button.style.color = 'var(--mute)';
+        }, 2200);
+      }
+    }
+
+    // Try Web Share API on mobile devices
+    if (navigator.share && /mobile|android|iphone|ipad/i.test(navigator.userAgent)) {
+      navigator.share({
+        title: document.title,
+        text: 'Check out this profile on Nina.Sucks',
+        url: url
+      }).then(function() {
+        notify(btn);
+      }).catch(function() {
+        doCopy();
+      });
+    } else {
+      doCopy();
+    }
+
+    function doCopy() {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function() {
+          notify(btn);
+        }).catch(function() {
+          execFallback();
+        });
+      } else {
+        execFallback();
+      }
+    }
+
+    function execFallback() {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = url;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.top = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) {
+          notify(btn);
+        } else {
+          window.prompt('Copy profile link:', url);
+        }
+      } catch (e) {
+        window.prompt('Copy profile link:', url);
+      }
+    }
+  };
+
+  /* Auto-hydrate embedded figure.media video elements across all pages */
+  function fixMediaFigures(root = document) {
+    (root || document).querySelectorAll('figure.media').forEach(function(fig) {
+      const img = fig.querySelector('img');
+      const playBtn = fig.querySelector('.play');
+      const dur = fig.querySelector('.dur');
+      const hiddenVid = fig.querySelector('video');
+
+      let videoSrc = (playBtn && playBtn.dataset.videoSrc) || (hiddenVid && hiddenVid.src) || (img && img.src) || '';
+      const isVideo = Boolean(videoSrc && /\.(mp4|webm|mov|m4v|ogg)(\?.*)?$/i.test(videoSrc));
+
+      if (isVideo) {
+        fig.classList.add('media-video');
+        if (img && /\.(mp4|webm|mov|m4v|ogg)(\?.*)?$/i.test(img.src)) {
+          img.style.display = 'none';
+        }
+        if (playBtn) playBtn.style.display = 'none';
+        if (dur) dur.style.display = 'none';
+
+        let vid = hiddenVid;
+        if (!vid) {
+          vid = document.createElement('video');
+          fig.appendChild(vid);
+        }
+        if (!vid.src || vid.src !== videoSrc) vid.src = videoSrc;
+        vid.controls = true;
+        vid.preload = 'metadata';
+        vid.playsInline = true;
+        vid.style.display = 'block';
+        vid.style.width = '100%';
+        vid.style.maxHeight = '560px';
+        vid.style.borderRadius = '4px';
+        vid.style.objectFit = 'contain';
+        vid.style.background = '#000';
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { fixMediaFigures(); });
+  } else {
+    fixMediaFigures();
+  }
+  window.addEventListener('load', function() { fixMediaFigures(); });
+  window.fixMediaFigures = fixMediaFigures;
+})();

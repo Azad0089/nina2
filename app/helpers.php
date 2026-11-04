@@ -96,8 +96,8 @@ if (!function_exists('site_logo_url')) {
 if (!function_exists('media_url')) {
     function media_url($path)
     {
-        if (!$path || $path === 'hero.jpg' || $path === 'assets/hero.jpg' || $path === '/assets/hero.jpg') {
-            return '';
+        if (!$path) {
+            return asset('assets/hero.jpg');
         }
 
         // Base64 image

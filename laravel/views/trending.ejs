@@ -1,0 +1,39 @@
+<%- include('partials/head') %>
+<%- include('partials/header') %>
+
+<main class="page" id="main">
+  <%- include('partials/page-hero', { hero: { title: 'Trending now', lead: 'What everybody is tagging, following and liking this week.', color: '#ff1f4b' } }) %>
+
+  <h2 class="sec-title">Trending tags</h2>
+  <div class="tag-cloud">
+    <% 
+      const maxCount = Math.max(1, ...trendingTags.map(t => t[1]));
+      trendingTags.forEach(function([tag, count]) {
+        const lvl = 1 + Math.floor((count / maxCount) * 3.99);
+    %>
+      <a href="<%= url('trending.php?tag=' + encodeURIComponent(tag)) %>" class="tc tc-<%= lvl %>">#<%= tag %><small><%= fmt_count(count) %></small></a>
+    <% }); %>
+  </div>
+
+  <h2 class="sec-title">Popular blogs</h2>
+  <div class="featured">
+    <% featuredBlogs.forEach(function(b) { %>
+      <a class="fb" href="<%= url(b.href) %>" style="--c:<%= b.color %>">
+        <span class="fb-cover crop" style="<%= crop_style(b) %>"><img src="<%= media_url(b.img) %>" alt="" loading="lazy"></span>
+        <span class="fb-av"><%= initial(b.name) %></span>
+        <b><%= b.name %> <%- badge(b.badge) %></b>
+        <small><%= b.tagline %></small>
+      </a>
+    <% }); %>
+  </div>
+
+  <h2 class="sec-title">Most liked posts</h2>
+  <div class="grid-static">
+    <% topPosts.forEach(function(p) { %>
+      <%- include('partials/card', { p }) %>
+    <% }); %>
+  </div>
+</main>
+</div><!-- /.wrap -->
+
+<%- include('partials/footer') %>

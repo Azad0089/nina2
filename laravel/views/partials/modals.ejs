@@ -1,0 +1,65 @@
+<!-- ============ LOGIN ============ -->
+<div class="modal" data-name="login" role="dialog" aria-modal="true" aria-labelledby="m-login-h" hidden>
+  <div class="m-box">
+    <button class="m-close" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+    <h2 id="m-login-h">Sign in</h2>
+    <p class="m-sub">Welcome back. Your blogs are waiting.</p>
+    <form method="post" action="<%= url('auth/login.php') %>">
+      <input type="hidden" name="csrf" value="<%= csrfToken %>">
+      <p class="form-msg" role="alert" <%= (typeof flash !== 'undefined' && flash && flash.login) ? '' : 'hidden' %>><%= (typeof flash !== 'undefined' && flash && flash.login) ? flash.login : '' %></p>
+      <label class="field"><span>Email or username</span>
+        <input type="text" name="login" autocomplete="username" placeholder="admin or username" required></label>
+      <label class="field"><span>Password</span>
+        <span class="pw"><input type="password" name="password" autocomplete="current-password" placeholder="ChangeMe123!" required>
+        <button type="button" class="pw-toggle" aria-label="Show password"><svg class="ic"><use href="#i-eye"/></svg></button></span></label>
+      <div class="row-between">
+        <label class="check"><input type="checkbox" name="remember" value="1"><span>Keep me signed in</span></label>
+        <a class="lnk" href="<%= url('forgot.php') %>" data-modal="forgot">Forgot password?</a>
+      </div>
+      <div class="ts-slot" style="margin: 8px 0; font-size:12px; color:var(--mute)">Tip: Default admin login is <code>admin</code> / <code>ChangeMe123!</code></div>
+      <button class="btn btn-fill btn-wide" type="submit">Sign in</button>
+    </form>
+    <p class="m-alt">New here? <a class="lnk" href="<%= url('register.php') %>" data-modal="register">Create an account</a></p>
+  </div>
+</div>
+
+<!-- ============ REGISTER ============ -->
+<div class="modal" data-name="register" role="dialog" aria-modal="true" aria-labelledby="m-reg-h" hidden>
+  <div class="m-box">
+    <button class="m-close" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+    <h2 id="m-reg-h">Create your blog</h2>
+    <p class="m-sub">Your first blog is also your profile. Add more blogs any time.</p>
+    <form method="post" action="<%= url('auth/register.php') %>">
+      <input type="hidden" name="csrf" value="<%= csrfToken %>">
+      <p class="form-msg" role="alert" <%= (typeof flash !== 'undefined' && flash && flash.register) ? '' : 'hidden' %>><%= (typeof flash !== 'undefined' && flash && flash.register) ? flash.register : '' %></p>
+      <label class="field"><span>Blog name</span>
+        <span class="suffix"><input type="text" name="username" autocomplete="username" pattern="[a-zA-Z0-9\-]{3,30}" placeholder="my-blog" required><em>.nina.sucks</em></span></label>
+      <label class="field"><span>Email</span>
+        <input type="email" name="email" autocomplete="email" placeholder="you@example.com" required></label>
+      <label class="field"><span>Password</span>
+        <span class="pw"><input type="password" name="password" autocomplete="new-password" minlength="6" required>
+        <button type="button" class="pw-toggle" aria-label="Show password"><svg class="ic"><use href="#i-eye"/></svg></button></span></label>
+      <label class="check"><input type="checkbox" name="age18" value="1" required checked><span>I am 18 or older</span></label>
+      <label class="check"><input type="checkbox" name="terms" value="1" required checked><span>I accept the <a class="lnk" href="<%= url('terms.php') %>" target="_blank" rel="noopener">Terms</a> and <a class="lnk" href="<%= url('privacy.php') %>" target="_blank" rel="noopener">Privacy Policy</a></span></label>
+      <button class="btn btn-fill btn-wide" type="submit">Sign up</button>
+    </form>
+    <p class="m-alt">Already have an account? <a class="lnk" href="<%= url('login.php') %>" data-modal="login">Sign in</a></p>
+  </div>
+</div>
+
+<!-- ============ FORGOT PASSWORD ============ -->
+<div class="modal" data-name="forgot" role="dialog" aria-modal="true" aria-labelledby="m-forgot-h" hidden>
+  <div class="m-box">
+    <button class="m-close" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+    <h2 id="m-forgot-h">Reset your password</h2>
+    <p class="m-sub">Enter your account email and we will send you a reset link.</p>
+    <form method="post" action="<%= url('auth/forgot.php') %>">
+      <input type="hidden" name="csrf" value="<%= csrfToken %>">
+      <p class="form-msg" role="alert" <%= (typeof flash !== 'undefined' && flash && flash.forgot) ? '' : 'hidden' %>><%= (typeof flash !== 'undefined' && flash && flash.forgot) ? flash.forgot : '' %></p>
+      <label class="field"><span>Email</span>
+        <input type="email" name="email" autocomplete="email" required></label>
+      <button class="btn btn-fill btn-wide" type="submit">Send reset link</button>
+    </form>
+    <p class="m-alt"><a class="lnk" href="<%= url('login.php') %>" data-modal="login">Back to sign in</a></p>
+  </div>
+</div>

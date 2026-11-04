@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= page_title %></title>
+<meta name="description" content="<%= page_desc %>">
+<link rel="canonical" href="<%= page_canonical %>">
+<% if (typeof page_noindex !== 'undefined' && page_noindex) { %><meta name="robots" content="noindex,nofollow"><% } %>
+<meta name="theme-color" content="#07030d">
+<meta name="rta" content="RTA-5042-1996-1400-1577-RTA">
+
+<!-- Open Graph / social -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="<%= page_title %>">
+<meta property="og:description" content="<%= page_desc %>">
+<meta property="og:image" content="<%= url('assets/hero.jpg') %>">
+
+<!-- Favicons -->
+<link rel="icon" type="image/png" sizes="32x32" href="<%= url('assets/favicon-32.png') %>">
+<link rel="icon" type="image/png" sizes="192x192" href="<%= url('assets/favicon-192.png') %>">
+<link rel="apple-touch-icon" href="<%= url('assets/apple-touch-icon.png') %>">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="<%= url('css/style.css') %>">
+<% if (typeof useAppCss !== 'undefined' && useAppCss) { %>
+<link rel="stylesheet" href="<%= url('css/app.css') %>">
+<% } %>
+<%- site_color_vars() %>
+</head>
+<body>

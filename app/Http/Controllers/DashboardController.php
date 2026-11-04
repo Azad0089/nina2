@@ -398,41 +398,18 @@ class DashboardController extends Controller implements HasMiddleware
         return redirect()->route('dashboard.posts')->with('success', 'Post #' . $post->id . ' updated successfully!');
     }
 
-    public function posts(Request $request)
+    public function posts()
     {
         $user = Auth::user();
-        $allBlogs = $user->blogs;
-        $selectedBlogId = $request->query('blog_id', $user->mainBlog?->id);
-        $blog = $allBlogs->firstWhere('id', $selectedBlogId) ?? $user->mainBlog;
-        $myPosts = $blog ? $blog->posts()->orderBy('is_pinned', 'desc')->orderBy('published_at', 'desc')->get() : collect();
+        $blog = $user->mainBlog;
+        $myPosts = $blog ? $blog->posts()->orderBy('published_at', 'desc')->get() : collect();
 
         return view('dashboard', [
             'section' => 'posts',
             'user' => $user,
             'blog' => $blog,
-            'allBlogs' => $allBlogs,
             'myPosts' => $myPosts,
         ]);
-    }
-
-    public function togglePinPost(Request $request, $id)
-    {
-        $user = Auth::user();
-        $post = Post::whereHas('blog', fn($q) => $q->where('user_id', $user->id))->findOrFail($id);
-
-        if ($post->is_pinned) {
-            $post->is_pinned = false;
-            $post->save();
-            return redirect()->back()->with('success', 'Post unpinned from blog feed.');
-        } else {
-            $pinnedCount = Post::where('blog_id', $post->blog_id)->where('is_pinned', true)->count();
-            if ($pinnedCount >= 3) {
-                return redirect()->back()->with('error', 'Maximum limit of 3 pinned posts per blog feed reached. Unpin a post first to pin this one.');
-            }
-            $post->is_pinned = true;
-            $post->save();
-            return redirect()->back()->with('success', 'Post pinned to top of your blog feed!');
-        }
     }
 
     public function blogs(Request $request)
@@ -606,8 +583,6 @@ class DashboardController extends Controller implements HasMiddleware
                 return redirect()->back()->with('error', "Cover banner image size exceeds the {$maxImageMb}MB limit set in admin settings.");
             }
             $data['cover_path'] = $request->input('cover_data');
-        } elseif ($request->boolean('remove_cover') || $request->input('cover_data') === 'CLEAR') {
-            $data['cover_path'] = null;
         }
 
         $blog->update($data);

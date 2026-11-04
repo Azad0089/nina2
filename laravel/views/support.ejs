@@ -1,0 +1,34 @@
+<%- include('partials/head') %>
+<%- include('partials/header') %>
+
+<main class="page" id="main">
+  <%- include('partials/page-hero', { hero: { title: 'Help Center', lead: 'Quick answers. Cannot find yours? Ask us.', color: '#19e3ff' } }) %>
+
+  <div class="tiles tiles-3">
+    <a class="tile" href="<%= url('rules.php') %>" style="--c:#ffd60a"><%- icon('shield') %><h3>Community Rules</h3><p>What is allowed and what is not.</p></a>
+    <a class="tile" href="<%= url('contact.php?topic=report') %>" style="--c:#ff1f4b"><%- icon('flag') %><h3>Report content</h3><p>Flag a post, blog or account.</p></a>
+    <a class="tile" href="<%= url('contact.php') %>" style="--c:#19e3ff"><%- icon('mail') %><h3>Contact support</h3><p>Talk to a real person.</p></a>
+  </div>
+
+  <section class="faq-group">
+    <h2 class="sec-title">Getting started</h2>
+    <details class="faq"><summary>How do I start a blog?</summary><p>Press Sign up, choose a blog name and confirm you are 18 or older. Your first blog is created automatically and doubles as your profile.</p></details>
+    <details class="faq"><summary>What is the difference between my main blog and extra blogs?</summary><p>Your main blog is also your profile: it has a bio box, three website links and one contact email. Extra blogs are regular blogs without the profile fields. You can create as many extra blogs as you like.</p></details>
+    <details class="faq"><summary>Which post formats can I use?</summary><p>Text, photo, video, quote, link and chat. Audio posts are not available.</p></details>
+  </section>
+
+  <section class="faq-group">
+    <h2 class="sec-title">Design &amp; blogs</h2>
+    <details class="faq"><summary>Can I change how my blog looks?</summary><p>Every blog can have its own colors, header, cover image and layout in the blog settings.</p></details>
+    <details class="faq"><summary>Do blogs get their own web address?</summary><p>Yes. Each blog has a subdomain. Public blogs can be found in search engines.</p></details>
+  </section>
+
+  <section class="faq-group">
+    <h2 class="sec-title">Safety &amp; account</h2>
+    <details class="faq"><summary>How do I report a post or blog?</summary><p>Use the flag option on the post or blog, or send us a report from the contact page.</p></details>
+    <details class="faq"><summary>How do I get the Verified badge?</summary><p>Creators who post authentic original content can request identity verification in settings.</p></details>
+  </section>
+</main>
+</div><!-- /.wrap -->
+
+<%- include('partials/footer') %>

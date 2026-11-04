@@ -1,8 +1,8 @@
 {
-    "name": "probloggerrohit/nina-laravel",
+    "name": "probloggerrohit/tumblr-laravel",
     "type": "project",
-    "description": "Adult microblogging community platform built with Laravel 11.",
-    "keywords": ["laravel", "framework", "microblogging", "blog"],
+    "description": "Tumblr-style adult microblogging platform converted to Laravel 11.",
+    "keywords": ["laravel", "framework", "microblogging", "tumblr"],
     "license": "MIT",
     "require": {
         "php": "^8.2",

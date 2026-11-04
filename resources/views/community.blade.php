@@ -285,6 +285,11 @@
               @include('components.card', ['p' => $post])
             @endforeach
           </div>
+          @if($communityPosts->hasPages())
+              <div style="margin-top:30px;display:flex;justify-content:center;">
+                  {{ $communityPosts->links() }}
+              </div>
+          @endif
         @endif
       </section>
     </div>

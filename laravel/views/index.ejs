@@ -1,0 +1,152 @@
+<%- include('partials/head') %>
+<%- include('partials/header') %>
+
+  <!-- ============ HERO SLIDER ============ -->
+  <section class="hero" id="hero" aria-roledescription="carousel" aria-label="Featured" tabindex="0">
+    <div class="slides">
+      <% hero_slides(currentUser).forEach(function(s, i) { const H = i === 0 ? 'h1' : 'h2'; %>
+        <article class="slide<%= i === 0 ? ' active' : '' %>" style="--c:<%= s.color %>;--px:<%= s.x %>%;--py:<%= s.y %>%;--s:<%= s.z %>;--mpx:<%= s.mx %>%;--mpy:<%= s.my %>%;--ms:<%= s.mz %>">
+          <img class="bg" src="<%= asset(s.img) %>" alt="<%= s.alt %>" <%= i === 0 ? 'fetchpriority="high"' : 'loading="lazy"' %> decoding="async">
+          <div class="hue"></div><div class="shade"></div>
+          <div class="copy">
+            <<%= H %>><%= s.title %></<%= H %>>
+            <p><%= s.text %></p>
+            <div class="cta">
+              <% s.cta.forEach(function(b) { %>
+                <a class="btn <%= b.class %>" href="<%= b.href.startsWith('#') ? b.href : url(b.href) %>"<%= b.modal ? ' data-modal="' + b.modal + '"' : '' %>><%= b.label %></a>
+              <% }); %>
+            </div>
+          </div>
+        </article>
+      <% }); %>
+    </div>
+
+    <div class="controls">
+      <button class="sq" id="prev" type="button" aria-label="Previous slide"><%- icon('left') %></button>
+      <div class="dots" role="tablist" aria-label="Choose slide">
+        <% hero_slides(currentUser).forEach(function(s, i) { %>
+          <button class="dot<%= i === 0 ? ' active' : '' %>" type="button" role="tab" aria-label="Slide <%= i + 1 %>" aria-selected="<%= i === 0 ? 'true' : 'false' %>"><i></i></button>
+        <% }); %>
+      </div>
+      <button class="sq" id="next" type="button" aria-label="Next slide"><%- icon('right') %></button>
+    </div>
+  </section>
+
+  <div class="layout">
+    <main class="main" id="main">
+
+      <!-- Featured blogs -->
+      <section class="block" aria-labelledby="feat-h">
+        <div class="block-head"><h2 id="feat-h">Featured blogs</h2><a href="<%= url('trending.php') %>">See all</a></div>
+        <div class="featured">
+          <% featuredBlogs.forEach(function(b) { %>
+            <a class="fb" href="<%= url(b.href) %>" style="--c:<%= b.color %>">
+              <span class="fb-cover crop" style="<%= crop_style(b) %>"><img src="<%= media_url(b.img) %>" alt="" loading="lazy" decoding="async"></span>
+              <span class="fb-av"><%= initial(b.name) %></span>
+              <b><%= b.name %> <%- badge(b.badge) %></b>
+              <small><%= b.tagline %></small>
+            </a>
+          <% }); %>
+        </div>
+      </section>
+
+      <!-- Newest posts -->
+      <section class="block" aria-labelledby="feed-h">
+        <div class="block-head">
+          <h2 id="feed-h">Newest posts</h2>
+          <div class="view-toggle" role="group" aria-label="Post layout">
+            <button type="button" data-view="grid" class="<%= view === 'grid' ? 'is-on' : '' %>" aria-pressed="<%= view === 'grid' ? 'true' : 'false' %>" aria-label="Grid view" title="Grid view"><%- icon('grid') %><span>Grid</span></button>
+            <button type="button" data-view="list" class="<%= view === 'list' ? 'is-on' : '' %>" aria-pressed="<%= view === 'list' ? 'true' : 'false' %>" aria-label="List view" title="List view"><%- icon('list') %><span>List</span></button>
+          </div>
+        </div>
+        <p class="hint">Newest first. Keep scrolling for older posts.</p>
+
+        <div class="filters" role="toolbar" aria-label="Filter posts by format">
+          <a class="chip<%= type === 'all' ? ' is-on' : '' %>" href="<%= url('') %>" data-f="all">All</a>
+          <% Object.entries(post_types()).forEach(function([key, val]) { %>
+            <a class="chip<%= type === key ? ' is-on' : '' %>" href="<%= url('?type=' + key) %>" data-f="<%= key %>"><%- icon(val[1]) %><%= val[0] %></a>
+          <% }); %>
+        </div>
+
+        <div class="feed" id="feed" data-view="<%= view %>" data-type="<%= type %>" data-next="<%= firstBatchCount %>" aria-live="polite">
+          <% posts.forEach(function(p) { %>
+            <%- include('partials/card', { p }) %>
+          <% }); %>
+        </div>
+        <div class="sentinel" id="sentinel"><span class="loader" aria-hidden="true"></span><span class="s-text">Loading older posts</span></div>
+      </section>
+    </main>
+
+    <!-- ============ RIGHT RAIL ============ -->
+    <aside class="rail" aria-label="Discover">
+      <section class="box">
+        <h3>Trending tags</h3>
+        <div class="tags">
+          <% trendingTags.slice(0, 10).forEach(function(item) { %>
+            <a href="<%= url('trending.php?tag=' + encodeURIComponent(item[0])) %>">#<%= item[0] %></a>
+          <% }); %>
+        </div>
+      </section>
+
+      <section class="box">
+        <h3>Blogs to follow</h3>
+        <ul class="people">
+          <% suggestedBlogs.forEach(function(b) { 
+               const isFollowing = typeof followedBlogs !== 'undefined' && followedBlogs.has(b.id || b.name);
+          %>
+            <li>
+              <span class="av" style="--c:<%= b.color %>"><%= initial(b.name) %></span>
+              <div><b><%= b.name %></b><small><%= b.note %></small></div>
+              <button class="follow<%= isFollowing ? ' on' : '' %>" type="button" data-blog="<%= b.name %>"><%= isFollowing ? 'Following' : 'Follow' %></button>
+            </li>
+          <% }); %>
+        </ul>
+      </section>
+
+      <% if (typeof active_ads === 'function' && active_ads().length) { %>
+        <section class="box ads-section" style="border-color:rgba(255,43,214,0.35);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <h3 style="margin:0;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;color:var(--pink);">Sponsored Ads</h3>
+            <a href="<%= url('advertising.php') %>" style="font-size:11px;color:var(--mute);">Advertise &rarr;</a>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <% active_ads().forEach(function(ad) { %>
+              <div class="ad-card" style="background:rgba(255,255,255,0.02);border:1px solid var(--line);border-radius:4px;padding:10px;transition:border-color .2s;">
+                <% if (ad.image_url) { %>
+                  <a href="<%= ad.link_url %>" target="_blank" rel="sponsored noopener" style="display:block;margin-bottom:8px;overflow:hidden;border-radius:2px;">
+                    <img src="<%= media_url(ad.image_url) %>" alt="<%= ad.title %>" style="width:100%;height:110px;object-fit:cover;">
+                  </a>
+                <% } %>
+                <b style="display:block;font-size:13px;margin-bottom:3px;"><a href="<%= ad.link_url %>" target="_blank" rel="sponsored noopener" style="color:var(--text);"><%= ad.title %></a></b>
+                <% if (ad.description) { %>
+                  <p style="font-size:12px;color:var(--mute);margin:0 0 6px;line-height:1.4;"><%= ad.description %></p>
+                <% } %>
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;">
+                  <span style="color:var(--yellow);font-weight:600;">Sponsored<%= ad.sponsor_name ? ' by ' + ad.sponsor_name : '' %></span>
+                  <a href="<%= ad.link_url %>" target="_blank" rel="sponsored noopener" class="btn btn-line" style="padding:2px 8px;font-size:10px;">Visit &rarr;</a>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        </section>
+      <% } %>
+
+      <section class="box promo">
+        <h3>Get your posts seen</h3>
+        <p>Spend points on views or book a flat-rate spot on Explore.</p>
+        <a class="btn btn-fill" href="<%= url('advertising.php') %>">Advertise</a>
+      </section>
+
+      <section class="box badges">
+        <h3>Badges</h3>
+        <ul>
+          <% badge_legend().forEach(function(b) { %>
+            <li><%- badge(b.badge) %><%= b.text %></li>
+          <% }); %>
+        </ul>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

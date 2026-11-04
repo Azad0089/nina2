@@ -1,0 +1,78 @@
+<%- include('partials/head') %>
+<%- include('partials/header') %>
+
+<main class="page" id="main">
+  <section class="panel" style="max-width:640px;margin:30px auto;padding:0 14px">
+    <nav class="crumbs" style="margin-bottom:16px" aria-label="Breadcrumb">
+      <a href="<%= url('') %>">Home</a>
+      <span aria-hidden="true">/</span>
+      <a href="<%= url('blog.php?u=' + encodeURIComponent(p.blog)) %>">@<%= p.blog %></a>
+      <span aria-hidden="true">/</span>
+      <span>Post #<%= p.id %></span>
+    </nav>
+    <div class="feed" data-view="list">
+      <%- include('partials/card', { p }) %>
+    </div>
+
+    <!-- ============ COMMENTS SECTION ============ -->
+    <section class="comments-section" id="comments" style="margin-top:28px;background:var(--ink);border:1px solid var(--line);border-radius:6px;padding:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;border-bottom:1px solid var(--line);padding-bottom:14px;">
+        <h2 style="font:700 18px var(--f-display);margin:0;display:flex;align-items:center;gap:8px;">
+          <%- icon('chat') %>
+          <span>Comments</span>
+          <span style="font-size:13px;padding:2px 8px;border-radius:99px;background:var(--line);color:var(--text);"><%= (p.comments || []).length %></span>
+        </h2>
+        <small style="color:var(--mute);">Be respectful & adhere to community rules</small>
+      </div>
+
+      <!-- Add Comment Form -->
+      <% if (currentUser) { %>
+        <form method="POST" action="<%= url('actions/comment.php') %>" style="margin-bottom:28px;" id="commentForm">
+          <input type="hidden" name="csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="post_id" value="<%= p.id %>">
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <span class="av" style="--c:var(--pink);width:36px;height:36px;font-size:14px;font-weight:700;flex-shrink:0;"><%= initial(currentUser.username) %></span>
+            <div style="flex:1;">
+              <textarea name="comment" rows="3" required placeholder="Write a comment..." style="width:100%;box-sizing:border-box;background:var(--black);border:1px solid var(--line);border-radius:4px;padding:10px 12px;color:var(--text);font-family:inherit;font-size:14px;resize:vertical;"></textarea>
+              <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+                <button type="submit" class="btn btn-fill" style="padding:8px 18px;font-size:13px;">Post Comment</button>
+              </div>
+            </div>
+          </div>
+        </form>
+      <% } else { %>
+        <div style="background:rgba(255,255,255,0.03);border:1px dashed var(--line);border-radius:6px;padding:20px;text-align:center;margin-bottom:24px;">
+          <p style="margin:0 0 12px;color:var(--mute);font-size:14px;">Sign in or create a free account to join the discussion.</p>
+          <div style="display:flex;gap:10px;justify-content:center;">
+            <a href="<%= url('login.php') %>" data-modal="login" class="btn btn-fill" style="padding:8px 16px;font-size:13px;">Sign In to Comment</a>
+            <a href="<%= url('register.php') %>" data-modal="register" class="btn btn-line" style="padding:8px 16px;font-size:13px;">Create Account</a>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- Comments List -->
+      <div class="comments-list" style="display:flex;flex-direction:column;gap:16px;">
+        <% if (p.comments && p.comments.length) { %>
+          <% p.comments.forEach(function(c) { %>
+            <div class="comment-item" style="display:flex;gap:12px;align-items:flex-start;padding:12px 14px;background:rgba(255,255,255,0.02);border:1px solid var(--line);border-radius:4px;">
+              <span class="av" style="--c:var(--cyan);width:32px;height:32px;font-size:13px;font-weight:700;flex-shrink:0;"><%= initial(c.username || 'U') %></span>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;">
+                  <b style="font-size:13px;color:#fff;"><%= c.username %></b>
+                  <%- badge(c.badge) %>
+                  <span style="font-size:11px;color:var(--mute);margin-left:auto;"><%= time_ago(Math.round((Date.now() - (c.createdAt || Date.now())) / 60000)) %> ago</span>
+                </div>
+                <div style="font-size:14px;line-height:1.5;color:var(--text);white-space:pre-wrap;word-break:break-word;"><%= c.comment %></div>
+              </div>
+            </div>
+          <% }); %>
+        <% } else { %>
+          <p style="text-align:center;color:var(--mute);font-size:14px;padding:24px 0;margin:0;">No comments yet. Be the first to share your thoughts!</p>
+        <% } %>
+      </div>
+    </section>
+  </section>
+</main>
+</div><!-- /.wrap -->
+
+<%- include('partials/footer') %>

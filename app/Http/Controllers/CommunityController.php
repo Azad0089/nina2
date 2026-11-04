@@ -69,14 +69,14 @@ class CommunityController extends Controller
         // Unique posts published to the community hub
         $communityPosts = Post::with(['blog.user'])
             ->where('status', 'published')
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->where('is_community', 1)
-                  ->orWhere('media_meta->is_community', true);
+                ->orWhere('media_meta->is_community', true);
             })
             ->orderBy('published_at', 'desc')
             ->orderBy('id', 'desc')
-            ->take(40)
-            ->get();
+            ->paginate(30, ['*'], 'posts_page')
+            ->withQueryString();
 
         $memberCount = count($memberUserIds);
 

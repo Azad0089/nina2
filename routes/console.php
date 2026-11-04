@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use App\Models\Post;
@@ -12,7 +13,7 @@ Artisan::command('inspire', function () {
 Artisan::command('posts:publish-scheduled', function () {
     $now = now();
     $this->info("Checking for matured queued/scheduled posts at {$now->toDateTimeString()}...");
-
+Log::info('Artisan scheduler triggered: checking scheduled tasks.');
     $duePosts = Post::where('status', 'queued')
         ->whereNotNull('published_at')
         ->where('published_at', '<=', $now)

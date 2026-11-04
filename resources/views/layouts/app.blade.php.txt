@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>@yield('title', site_name() . ' | Adult Microblogging Community')</title>
+  <meta name="description" content="@yield('description', $siteSettings['meta_description'] ?? 'Adult microblogging platform: text, photos, video, quotes, links, and chats.')">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="theme-color" content="#07030d">
+
+  <!-- OpenGraph & Social Cards -->
+  <meta property="og:site_name" content="{{ site_name() }}">
+  <meta property="og:title" content="@yield('title', site_name())">
+  <meta property="og:description" content="@yield('description', $siteSettings['meta_description'] ?? 'Adult microblogging platform')">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="{{ url()->current() }}">
+  <meta property="og:image" content="{{ asset('assets/hero.jpg') }}">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="canonical" href="{{ url()->current() }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/favicon-32.png') }}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('assets/favicon-192.png') }}">
+  <link rel="apple-touch-icon" href="{{ asset('assets/apple-touch-icon.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+  @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+  @endif
+
+  <!-- Dynamic Theme Colors -->
+  <style>
+    :root {
+      --primary: {{ $siteSettings['primary_color'] ?? '#ff2bd6' }};
+      --secondary: {{ $siteSettings['secondary_color'] ?? '#19e3ff' }};
+    }
+  </style>
+
+  <!-- Cloudflare Turnstile CAPTCHA JS -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+  <!-- Sitewide Head Scripts & Analytics Injected via Admin Control Panel -->
+  @if(!empty($siteSettings['head_scripts']))
+    {!! $siteSettings['head_scripts'] !!}
+  @endif
+
+  @stack('styles')
+</head>
+<body>
+  @include('partials.icons')
+
+  <div class="wrap">
+    @yield('content')
+  </div>
+
+  @include('partials.gate')
+  @include('partials.modals')
+
+  <script>
+  window.NINA = {
+    base: '{{ url('') }}',
+    csrf: '{{ csrf_token() }}',
+    loggedIn: {{ auth()->check() ? 'true' : 'false' }},
+    loginUrl: '{{ route('login') }}'
+  };
+  </script>
+  <script src="{{ asset('js/main.js') }}"></script>
+  @stack('scripts')
+</body>
+</html>

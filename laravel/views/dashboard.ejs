@@ -1,0 +1,162 @@
+<%- include('partials/head', { useAppCss: true }) %>
+
+<div class="app">
+  <aside class="app-side">
+    <a class="brand" href="<%= url('') %>">
+      <img src="<%= url('assets/favicon-192.png') %>" alt="">
+      <span><%= site_name() %></span>
+    </a>
+    <nav class="app-nav">
+      <a href="<%= url('dashboard') %>" class="<%= section === 'overview' ? 'on' : '' %>"><%- icon('compass') %>Overview</a>
+      <a href="<%= url('dashboard/post.php') %>" class="<%= section === 'new_post' ? 'on' : '' %>"><%- icon('plus') %>New post</a>
+      <a href="<%= url('dashboard/posts.php') %>" class="<%= section === 'posts' ? 'on' : '' %>"><%- icon('list') %>My posts</a>
+      <a href="<%= url('dashboard/blogs.php') %>" class="<%= section === 'blogs' ? 'on' : '' %>"><%- icon('edit') %>Blog settings</a>
+      <hr>
+      <a href="<%= url('') %>"><%- icon('left') %>Back to Explore</a>
+      <a href="<%= url('logout.php') %>"><%- icon('login') %>Sign out</a>
+    </nav>
+  </aside>
+
+  <main class="app-main">
+    <div class="app-topbar">
+      <h1><%= title %></h1>
+      <div class="app-user">
+        <span class="av"><%= initial(currentUser.username) %></span>
+        <span><b><%= currentUser.username %></b> (<%= currentUser.role %>) &middot; <%= currentUser.points || 0 %> pts</span>
+      </div>
+    </div>
+
+    <% if (typeof flashMsg !== 'undefined' && flashMsg) { %>
+      <div class="app-flash"><%= flashMsg %></div>
+    <% } %>
+
+    <% if (section === 'overview' || section === 'posts') { %>
+      <div class="stat-row">
+        <div class="stat"><b><%= myPosts.length %></b><span>Published posts</span></div>
+        <div class="stat"><b><%= followerCount %></b><span>Followers</span></div>
+        <div class="stat"><b><%= totalLikes %></b><span>Total likes</span></div>
+        <div class="stat"><b><%= currentUser.points || 0 %></b><span>Points balance</span></div>
+      </div>
+    <% } %>
+
+    <% if (section === 'new_post') { %>
+      <div class="app-card">
+        <h2>Publish a New Post</h2>
+        <form method="post" action="<%= url('dashboard/post.php') %>">
+          <input type="hidden" name="csrf" value="<%= csrfToken %>">
+          
+          <label class="field" style="margin-bottom:14px;">
+            <span>Post Format</span>
+            <select name="type" id="postTypeSelect" style="width:100%;padding:10px;background:var(--ink);color:var(--text);border:1px solid var(--line);">
+              <option value="text">Text Post</option>
+              <option value="photo">Photo Post</option>
+              <option value="quote">Quote Post</option>
+              <option value="link">Link Post</option>
+              <option value="video">Video Post</option>
+              <option value="chat">Chat Dialogue</option>
+            </select>
+          </label>
+
+          <div id="fieldHeading" class="field" style="margin-bottom:14px;">
+            <span>Heading / Title</span>
+            <input type="text" name="heading" placeholder="Post title (optional)">
+          </div>
+
+          <div id="fieldBody" class="field" style="margin-bottom:14px;">
+            <span>Body Text</span>
+            <textarea name="body" rows="5" placeholder="Write your post here..." style="width:100%;padding:10px;background:var(--ink);color:var(--text);border:1px solid var(--line);"></textarea>
+          </div>
+
+          <div id="fieldCaption" class="field" style="margin-bottom:14px;">
+            <span>Caption / Description</span>
+            <input type="text" name="caption" placeholder="Short caption">
+          </div>
+
+          <div id="fieldQuote" class="field" style="margin-bottom:14px;">
+            <span>Quote Text</span>
+            <textarea name="quote" rows="3" placeholder="Enter memorable quote..." style="width:100%;padding:10px;background:var(--ink);color:var(--text);border:1px solid var(--line);"></textarea>
+          </div>
+
+          <div id="fieldSource" class="field" style="margin-bottom:14px;">
+            <span>Quote Source</span>
+            <input type="text" name="source" placeholder="Source or author">
+          </div>
+
+          <div id="fieldUrl" class="field" style="margin-bottom:14px;">
+            <span>Link URL</span>
+            <input type="url" name="url" placeholder="https://example.com">
+          </div>
+
+          <div id="fieldChat" class="field" style="margin-bottom:14px;">
+            <span>Chat Lines (Format: Name: Message, one per line)</span>
+            <textarea name="chat" rows="4" placeholder="Alice: Hello&#10;Bob: Hey there!" style="width:100%;padding:10px;background:var(--ink);color:var(--text);border:1px solid var(--line);"></textarea>
+          </div>
+
+          <div class="field" style="margin-bottom:18px;">
+            <span>Tags (comma separated)</span>
+            <input type="text" name="tags" placeholder="neon, nightshift, cozy">
+          </div>
+
+          <button type="submit" class="btn btn-fill"><%- icon('plus') %>Publish Now</button>
+        </form>
+      </div>
+
+    <% } else if (section === 'blogs') { %>
+      <div class="app-card">
+        <h2>Blog Appearance &amp; Details</h2>
+        <form method="post" action="<%= url('dashboard/blogs.php') %>">
+          <input type="hidden" name="csrf" value="<%= csrfToken %>">
+          <label class="field" style="margin-bottom:14px;"><span>Blog Title</span><input type="text" name="title" value="<%= myBlog.title %>" required></label>
+          <label class="field" style="margin-bottom:14px;"><span>Tagline</span><input type="text" name="tagline" value="<%= myBlog.tagline || '' %>"></label>
+          <label class="field" style="margin-bottom:14px;"><span>Bio</span><textarea name="bio" rows="4" style="width:100%;padding:10px;background:var(--ink);color:var(--text);border:1px solid var(--line);"><%= myBlog.bio || '' %></textarea></label>
+          <div class="color-row" style="margin-bottom:18px;">
+            <span>Accent Theme Color</span>
+            <input type="color" name="color" value="<%= myBlog.color || '#ff2bd6' %>">
+          </div>
+          <button type="submit" class="btn btn-fill">Save Blog Settings</button>
+        </form>
+      </div>
+
+    <% } else { %>
+      <div class="app-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2>Your Posts (<%= myPosts.length %>)</h2>
+          <a href="<%= url('dashboard/post.php') %>" class="btn btn-fill btn-xs"><%- icon('plus') %>New post</a>
+        </div>
+        <% if (!myPosts.length) { %>
+          <p style="color:var(--mute)">You haven't published any posts yet. <a class="lnk" href="<%= url('dashboard/post.php') %>">Create your first post</a>!</p>
+        <% } else { %>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Format</th>
+                <th>Content Preview</th>
+                <th>Likes</th>
+                <th>Reblogs</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% myPosts.forEach(function(p) { %>
+                <tr>
+                  <td><span class="pill pill-active"><%= p.type %></span></td>
+                  <td><b><%= p.heading || p.caption || p.quote || p.title || 'Post #' + p.id %></b></td>
+                  <td><%= p.like_count || 0 %></td>
+                  <td><%= p.reblog_count || 0 %></td>
+                  <td><%= time_ago(p.minutes || 1) %> ago</td>
+                  <td>
+                    <a class="btn-xs" href="<%= url('post.php?id=' + p.id) %>" target="_blank">View</a>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+    <% } %>
+  </main>
+</div>
+
+</body>
+</html>

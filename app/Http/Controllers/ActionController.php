@@ -377,38 +377,4 @@ class ActionController extends Controller
 
         return redirect()->back()->with('success', 'Post deleted successfully.');
     }
-
-    public function togglePin(Request $request)
-    {
-        if (!Auth::check()) {
-            return response()->json(['ok' => false, 'message' => 'Please sign in.'], 401);
-        }
-
-        $postId = (int)$request->input('post_id', $request->input('id'));
-        $user = Auth::user();
-
-        $post = Post::with('blog')->find($postId);
-        if (!$post) {
-            return response()->json(['ok' => false, 'message' => 'Post not found.'], 404);
-        }
-
-        $isOwner = $post->blog && ($post->blog->user_id === $user->id);
-        if (!$isOwner && !$user->is_admin) {
-            return response()->json(['ok' => false, 'message' => 'You can only pin/unpin posts on your own blogs.'], 403);
-        }
-
-        if ($post->is_pinned) {
-            $post->is_pinned = false;
-            $post->save();
-            return response()->json(['ok' => true, 'is_pinned' => false, 'message' => 'Post unpinned from blog feed.']);
-        } else {
-            $pinnedCount = Post::where('blog_id', $post->blog_id)->where('is_pinned', true)->count();
-            if ($pinnedCount >= 3) {
-                return response()->json(['ok' => false, 'message' => 'Maximum limit of 3 pinned posts per blog feed reached. Unpin another post first.'], 400);
-            }
-            $post->is_pinned = true;
-            $post->save();
-            return response()->json(['ok' => true, 'is_pinned' => true, 'message' => 'Post pinned to top of blog feed!']);
-        }
-    }
 }

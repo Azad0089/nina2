@@ -1,0 +1,15 @@
+<%- include('gate') %>
+<%- include('modals') %>
+
+<script>
+window.NINA = {
+  base: '',
+  openModal: <%- JSON.stringify(typeof open_modal !== 'undefined' ? open_modal : null) %>,
+  csrf: <%- JSON.stringify(csrfToken || '') %>,
+  loggedIn: <%- JSON.stringify(Boolean(currentUser)) %>,
+  loginUrl: '<%= url("login.php") %>'
+};
+</script>
+<script src="<%= url('js/main.js') %>"></script>
+</body>
+</html>

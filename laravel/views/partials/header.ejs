@@ -1,0 +1,85 @@
+<%- include('icons') %>
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- ============ LEFT SIDEBAR ============ -->
+<aside class="side" id="side" aria-label="Site menu">
+  <a class="side-logo" href="<%= url('') %>" aria-label="<%= site_name() %> home">
+    <img src="<%= site_logo_url() %>" alt="<%= site_name() %>" width="200" height="150">
+  </a>
+
+  <nav class="side-nav" aria-label="Main">
+    <% (nav_items()).forEach(function(item) { 
+         const on = (typeof active_nav !== 'undefined' ? active_nav : 'explore') === item.key;
+    %>
+      <a href="<%= url(item.href) %>" class="nav-link<%= on ? ' is-active' : '' %>"<%- on ? ' aria-current="page"' : '' %>>
+        <%- icon(item.icon) %><%= item.label %>
+      </a>
+    <% }); %>
+
+    <% if (currentUser) { %>
+      <a href="<%= url('dashboard') %>" class="nav-link<%= (typeof active_nav !== 'undefined' && active_nav === 'dashboard') ? ' is-active' : '' %>">
+        <%- icon('settings') %>Dashboard
+      </a>
+      <% if (currentUser.role === 'admin') { %>
+      <a href="<%= url('admin') %>" class="nav-link<%= (typeof active_nav !== 'undefined' && active_nav === 'admin') ? ' is-active' : '' %>">
+        <%- icon('shield') %>Admin
+      </a>
+      <% } %>
+    <% } %>
+  </nav>
+
+  <div class="side-auth">
+    <% if (!currentUser) { %>
+      <a href="<%= url('register.php') %>" data-modal="register" class="btn btn-fill"><%- icon('userplus') %>Sign up</a>
+      <a href="<%= url('login.php') %>" data-modal="login" class="btn btn-line"><%- icon('login') %>Sign in</a>
+    <% } else { %>
+      <div style="padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid var(--line);border-radius:2px;display:flex;align-items:center;gap:10px;">
+        <span class="av" style="--c:var(--pink);width:32px;height:32px;font-size:14px;font-weight:700;"><%= initial(currentUser.username) %></span>
+        <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;">
+          <b style="font-size:14px;display:block;"><%= currentUser.username %> <%- badge(currentUser.badge) %></b>
+          <small style="color:var(--mute);font-size:12px;"><%= currentUser.points || 0 %> pts</small>
+        </div>
+      </div>
+      <a href="<%= url('dashboard/post.php') %>" class="btn btn-fill" style="width:100%"><%- icon('plus') %>New post</a>
+      <a href="<%= url('logout.php') %>" class="btn btn-ghost" style="width:100%">Sign out</a>
+    <% } %>
+  </div>
+
+  <footer class="side-foot">
+    <% (footer_links()).forEach(function(l) { %>
+      <a href="<%= url(l.href) %>"><%= l.label %></a>
+    <% }); %>
+    <span>&copy; <%= new Date().getFullYear() %> <%= site_name() %> &middot; 18+ only</span>
+  </footer>
+</aside>
+<div class="scrim" id="scrim"></div>
+
+<!-- ============ MAIN ============ -->
+<div class="wrap">
+
+  <header class="top">
+    <button class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu" aria-controls="side" aria-expanded="false"><%- icon('menu') %></button>
+    <a class="top-logo" href="<%= url('') %>" aria-label="<%= site_name() %> home">
+      <img src="<%= url('assets/favicon-192.png') %>" alt="" width="36" height="36">
+      <span><%= site_name() %></span>
+    </a>
+    <form class="search" role="search" action="<%= url('trending.php') %>" method="get">
+      <%- icon('search') %>
+      <input type="search" name="tag" placeholder="Search blogs, tags and posts" aria-label="Search blogs, tags and posts">
+    </form>
+    <% if (!currentUser) { %>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <a href="<%= url('login.php') %>" data-modal="login" class="btn btn-line" style="padding:8px 14px;font-size:13px;">Sign in</a>
+        <a href="<%= url('register.php') %>" data-modal="register" class="btn btn-fill top-signup" style="padding:8px 14px;font-size:13px;">Sign up</a>
+      </div>
+    <% } else { %>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <a href="<%= url('dashboard') %>" class="btn btn-line" style="padding:6px 12px;font-size:13px;display:flex;align-items:center;gap:8px;border-radius:99px;" title="Go to Creator Studio">
+          <span class="av" style="--c:var(--pink);width:24px;height:24px;font-size:11px;font-weight:700;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--pink);color:#14000f;"><%= initial(currentUser.username) %></span>
+          <b style="font-weight:700;"><%= currentUser.username %></b>
+          <span style="font-size:11px;color:var(--pink);font-weight:700;"><%= currentUser.points || 0 %>p</span>
+        </a>
+        <a href="<%= url('dashboard/post.php') %>" class="btn btn-fill top-signup" style="padding:8px 14px;font-size:13px;"><%- icon('plus') %> Post</a>
+      </div>
+    <% } %>
+  </header>

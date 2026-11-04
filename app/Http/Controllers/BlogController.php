@@ -90,7 +90,6 @@ class BlogController extends Controller
             ->where(function($q) {
                 $q->whereNull('media_meta->is_community')->orWhere('media_meta->is_community', false);
             })
-            ->orderBy('is_pinned', 'desc')
             ->orderBy('published_at', 'desc');
         if ($type === 'photo' || $type === 'image' || $type === 'photos' || $type === 'images') {
             $query->where(function($q) {
@@ -146,7 +145,6 @@ class BlogController extends Controller
             ->where(function($q) {
                 $q->whereNull('media_meta->is_community')->orWhere('media_meta->is_community', false);
             })
-            ->orderBy('is_pinned', 'desc')
             ->orderBy('published_at', 'desc');
         if ($type === 'photo' || $type === 'image' || $type === 'photos' || $type === 'images') {
             $query->where(function($q) {

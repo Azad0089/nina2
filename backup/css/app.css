@@ -1,0 +1,53 @@
+/* Dashboard + Admin app shell. Reuses the color tokens and .btn/.field/.panel rules from style.css. */
+.app{display:flex;min-height:100vh}
+.app-side{width:230px;flex:none;background:var(--ink);border-right:1px solid var(--line);padding:22px 14px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.app-side .brand{display:flex;align-items:center;gap:10px;padding:6px 10px 22px;font:700 17px var(--f-display)}
+.app-side .brand img{width:28px;height:28px;border-radius:6px}
+.app-nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:2px;color:var(--mute);font-weight:600;font-size:14.5px;margin-bottom:2px;border-left:3px solid transparent}
+.app-nav a:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.app-nav a.on{color:var(--text);background:rgba(255,43,214,.1);border-left-color:var(--pink)}
+.app-nav .ic{width:18px;height:18px;flex:none}
+.app-nav hr{border:none;border-top:1px solid var(--line);margin:14px 4px}
+.app-main{flex:1;min-width:0;padding:28px 30px 80px}
+.app-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.app-topbar h1{font:700 24px var(--f-display);letter-spacing:-.02em}
+.app-user{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--mute)}
+.app-user .av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--pink);color:#14000f;font-weight:700}
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:26px}
+.stat{padding:18px;background:var(--ink);border:1px solid var(--line);border-top:2px solid var(--cyan)}
+.stat b{display:block;font:700 26px var(--f-display)}
+.stat span{color:var(--mute);font-size:13px}
+.data-table{width:100%;border-collapse:collapse;font-size:14px}
+.data-table th{text-align:left;color:var(--mute);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;padding:10px 12px;border-bottom:1px solid var(--line)}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--line)}
+.data-table tr:hover td{background:rgba(255,255,255,.03)}
+.pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;border:1px solid var(--line)}
+.pill-active{color:#7CFFB2;border-color:#7CFFB2}
+.pill-suspended{color:var(--yellow);border-color:var(--yellow)}
+.pill-banned{color:var(--red);border-color:var(--red)}
+.pill-open{color:var(--yellow);border-color:var(--yellow)}
+.pill-resolved,.pill-closed{color:var(--mute);border-color:var(--line)}
+.row-actions{display:flex;gap:6px;flex-wrap:wrap}
+.row-actions form{display:inline}
+.btn-xs{padding:6px 10px;font-size:12.5px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer;border-radius:2px}
+.btn-xs:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn-xs.danger:hover{border-color:var(--red);color:var(--red)}
+.app-flash{padding:12px 16px;margin-bottom:18px;border:1px solid var(--cyan);color:var(--cyan);font-size:14px}
+.app-flash.err{border-color:var(--red);color:var(--red)}
+.app-card{padding:22px;background:var(--ink);border:1px solid var(--line);margin-bottom:20px}
+.app-card h2{font:700 18px var(--f-display);margin-bottom:16px}
+.thumb{width:56px;height:56px;object-fit:cover;border-radius:4px;background:#000}
+.compose-types{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.compose-types button{padding:8px 16px;border:1px solid var(--line);background:transparent;color:var(--mute);font-weight:700;cursor:pointer}
+.compose-types button.on{color:#14000f;background:var(--pink);border-color:var(--pink)}
+.queue-badge{background:var(--violet);color:#fff;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700}
+.color-row{display:flex;gap:10px;align-items:center}
+.color-row input[type=color]{width:44px;height:36px;padding:2px;background:var(--black);border:1px solid var(--line)}
+@media (max-width:860px){
+  .app{display:block}
+  .app-side{position:static;height:auto;width:auto;display:flex;overflow-x:auto;gap:4px;padding:12px}
+  .app-side .brand{display:none}
+  .app-nav{display:flex;gap:4px}
+  .app-nav hr{display:none}
+  .app-main{padding:20px 16px 60px}
+}

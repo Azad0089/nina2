@@ -1,0 +1,10 @@
+<% const hc = (typeof hero !== 'undefined' && hero && hero.color) ? hero.color : '#ff2bd6'; %>
+<section class="page-hero" style="--c:<%= hc %>">
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a href="<%= url('') %>">Home</a>
+    <span aria-hidden="true">/</span>
+    <span><%= hero.title %></span>
+  </nav>
+  <h1><%= hero.title %></h1>
+  <% if (hero.lead) { %><p><%= hero.lead %></p><% } %>
+</section>

@@ -28,8 +28,10 @@
     }
   }
 
-  // Desktop menu stays open by default. User can click X button on top or menuBtn to minimize.
-  // We do not auto-collapse on page load.
+  // Restore desktop sidebar preference
+  if (window.innerWidth > 900 && store.get('sideCollapsed') === '1') {
+    document.body.classList.add('side-collapsed');
+  }
 
   document.addEventListener('click', e => {
     const btn = e.target.closest('#menuBtn, .menu-btn');
@@ -140,20 +142,19 @@
   /* ---------- 4) feed: PHP/Node renders first posts, feed.php returns next batches ----------
      Grid view = masonry columns, list view = one wide column. Order is always newest to oldest. */
   (function(){
-    const feed = $('#feed') || $('.feed');
-    if (!feed) return;
-    const sentinel = $('#sentinel');
-    const sText = sentinel ? $('.s-text', sentinel) : null;
-    const loader = sentinel ? $('.loader', sentinel) : null;
-    const loadMoreBtn = sentinel ? $('#loadMoreBtn', sentinel) : null;
-    const base = (window.NINA && window.NINA.base) || '';
-    const mobileMQ = matchMedia('(max-width:640px)');
-    const BATCH = 24, FIRST = 24;
-    let items = [...feed.querySelectorAll(':scope > .card')];   /* cards printed by server */
-    let filter = feed.dataset.type || 'all', offset = parseInt(feed.dataset.next, 10) || items.length;
-    let total = parseInt(feed.dataset.total, 10) || 999;
-    let view = store.get('feedView') || feed.dataset.view || 'grid';
-    let loading = false, done = (offset >= total), cols = [];
+    const feed=$('#feed'), sentinel=$('#sentinel');
+    if(!feed||!sentinel) return;                           /* only on the home page */
+    const sText=$('.s-text',sentinel);
+    const loader=$('.loader',sentinel);
+    const loadMoreBtn=$('#loadMoreBtn',sentinel);
+    const base=(window.NINA&&window.NINA.base)||'';
+    const mobileMQ=matchMedia('(max-width:640px)');
+    const BATCH=6, FIRST=8;
+    let items=[...feed.querySelectorAll(':scope > .card')];   /* cards printed by server */
+    let filter=feed.dataset.type||'all', offset=parseInt(feed.dataset.next,10)||items.length;
+    let total=parseInt(feed.dataset.total,10)||999;
+    let view=store.get('feedView')||feed.dataset.view||'grid';
+    let loading=false, done=(offset>=total), cols=[];
 
     /* --- layout --- */
     function colCount(){ return view==='list'||mobileMQ.matches?1:2; }
@@ -232,22 +233,12 @@
 
     /* --- data --- */
     async function fetchCards(off,limit){
-      const existingIds = [...feed.querySelectorAll('.card[data-post-id]')].map(c=>c.dataset.postId).filter(Boolean);
-      const excludeParam = existingIds.length ? `&exclude=${encodeURIComponent(existingIds.join(','))}` : '';
-      const res=await fetch(`${base}/feed.php?offset=${off}&limit=${limit}&type=${encodeURIComponent(filter)}${excludeParam}`,{headers:{'X-Requested-With':'fetch'}});
+      const res=await fetch(`${base}/feed.php?offset=${off}&limit=${limit}&type=${encodeURIComponent(filter)}`,{headers:{'X-Requested-With':'fetch'}});
       if(!res.ok) throw new Error(res.status);
       const tpl=document.createElement('template'); tpl.innerHTML=(await res.text()).trim();
-      const rawCards = [...tpl.content.children].filter(el=>el.classList.contains('card'));
-      const idSet = new Set(existingIds);
-      return rawCards.filter(c => {
-        const id = c.dataset.postId;
-        if (id && idSet.has(id)) return false;
-        if (id) idSet.add(id);
-        return true;
-      });
+      return [...tpl.content.children].filter(el=>el.classList.contains('card'));
     }
     function setStatus(html,end,showBtn){
-      if (!sentinel) return;
       sentinel.hidden=false;
       if (loader) loader.style.display=end?'none':'';
       if (sText) {
@@ -637,7 +628,7 @@
         pinBtn.disabled = true;
         pinBtn.style.opacity = '0.6';
         try {
-          const r = await postAction('actions/pin', { post_id: postId });
+          const r = await postAction('actions/pin-post', { post_id: postId });
           if (r && r.ok) {
             const isPinned = Boolean(r.is_pinned);
             pinBtn.classList.toggle('is-pinned', isPinned);
@@ -766,7 +757,7 @@
     });
     /* open from PHP ($open_modal) or from the URL hash, e.g. /#login */
     const start=(window.NINA&&window.NINA.openModal)||location.hash.replace('#','');
-    if(['login','register','forgot'].includes(start)) open(start);
+    if(['login','register','forgot','reset-password'].includes(start)) open(start);
   })();
 
   /* ---------- 6) Profile link copy & share handler ---------- */
