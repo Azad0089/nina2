@@ -244,6 +244,26 @@ class User extends Authenticatable
         return $this->hasMany(Message::class, 'sender_id')->latest();
     }
 
+    public function blocksMade()
+    {
+        return $this->hasMany(UserBlock::class, 'blocker_id');
+    }
+
+    public function blockedUsers()
+    {
+        return $this->belongsToMany(User::class, 'user_blocks', 'blocker_id', 'blocked_id')->withTimestamps();
+    }
+
+    public function hasBlocked(int $userId): bool
+    {
+        return $this->blocksMade()->where('blocked_id', $userId)->exists();
+    }
+
+    public function isBlockedBy(int $userId): bool
+    {
+        return UserBlock::where('blocker_id', $userId)->where('blocked_id', $this->id)->exists();
+    }
+
     public function getUnreadMessagesCountAttribute()
     {
         return $this->receivedMessages()->where('is_read', false)->count();

@@ -113,7 +113,45 @@ class BlogController extends Controller
 
         $userBlogs = $user ? $user->blogs()->where('status', 'active')->get() : ($blog->user ? $blog->user->blogs()->where('status', 'active')->get() : collect([$blog]));
 
-        return view('blog', compact('blog', 'user', 'userBlogs', 'posts', 'type', 'followerCount', 'isOwner', 'isFollowing'));
+        $profileUser = $user ?: $blog->user;
+        $isBlockedByMe = false;
+        $hasBlockedMe = false;
+        $messageBlockState = '';
+        if (Auth::check() && $profileUser && Auth::id() !== $profileUser->id) {
+            try {
+                ensure_private_message_tables();
+                $isBlockedByMe = Auth::user()->hasBlocked($profileUser->id);
+                $hasBlockedMe = Auth::user()->isBlockedBy($profileUser->id);
+                $messageBlockState = $isBlockedByMe ? 'by-me' : ($hasBlockedMe ? 'by-them' : '');
+            } catch (\Throwable $e) {
+                $isBlockedByMe = false;
+                $hasBlockedMe = false;
+                $messageBlockState = '';
+            }
+        }
+
+        $messageMaxMb = 10;
+        try {
+            $messageMaxMb = (float) \App\Models\Setting::get('max_message_file_mb', 10);
+        } catch (\Throwable $e) {}
+        if ($messageMaxMb < 0) {
+            $messageMaxMb = 0;
+        }
+
+        return view('blog', compact(
+            'blog',
+            'user',
+            'userBlogs',
+            'posts',
+            'type',
+            'followerCount',
+            'isOwner',
+            'isFollowing',
+            'isBlockedByMe',
+            'hasBlockedMe',
+            'messageBlockState',
+            'messageMaxMb'
+        ));
     }
 
     /**

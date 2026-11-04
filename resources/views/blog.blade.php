@@ -16,6 +16,11 @@
   @include('partials.header')
 
   <main class="page" id="main">
+    @if(session('success') || session('error'))
+      <div class="panel" style="margin-bottom:16px;padding:12px 16px;border-color:{{ session('error') ? '#fb7185' : '#34d399' }};color:{{ session('error') ? '#fb7185' : '#34d399' }};">
+        {{ session('error') ?: session('success') }}
+      </div>
+    @endif
     <header class="blog-head" style="--c:{{ $blog->color ?? '#ff2bd6' }}">
       <div class="blog-cover{{ $blog->cover_path ? '' : ' ph' }}" {!! $blog->cover_path ? 'style="background-image:url(' . media_url($blog->cover_path) . ')"' : '' !!}></div>
       <div class="panel" style="margin-top:-46px;position:relative">
@@ -45,11 +50,18 @@
             </div>
           </div>
           <div style="flex-shrink:0;align-self:flex-end;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            @if(!$isOwner && auth()->check())
+            @if(!$isOwner && auth()->check() && $blogOwner)
               <button class="follow{{ !empty($isFollowing) ? ' on' : '' }}" type="button" data-blog="{{ $blog->slug }}" style="padding:8px 18px;font-size:13px;border-radius:4px;white-space:nowrap;">{{ !empty($isFollowing) ? 'Following' : 'Follow' }}</button>
-              <button type="button" class="btn btn-line" onclick="openPrivateMessageModal('{{ $blogOwner ? $blogOwner->id : '' }}', '{{ $ownerUsername }}')" style="padding:8px 14px;font-size:13px;border-radius:4px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;">
+              <button type="button" class="btn btn-line" onclick="openPrivateMessageModal({{ (int) $blogOwner->id }}, {{ json_encode($ownerUsername) }}, {{ json_encode($messageBlockState ?? '') }})" style="padding:8px 14px;font-size:13px;border-radius:4px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;">
                 {!! icon('mail') !!} <span>Message</span>
               </button>
+              <form method="POST" action="{{ route('action.block') }}" style="display:inline;" onsubmit="return confirm({{ json_encode(!empty($isBlockedByMe) ? 'Unblock @'.$ownerUsername.'? You will be able to message each other again.' : 'Block @'.$ownerUsername.'? They will not be able to message you, and you will not be able to message them, until you unblock.') }});">
+                @csrf
+                <input type="hidden" name="user_id" value="{{ $blogOwner->id }}">
+                <button type="submit" class="btn btn-ghost" style="padding:8px 14px;font-size:13px;border-radius:4px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;">
+                  {!! icon('ban') !!} <span>{{ !empty($isBlockedByMe) ? 'Unblock' : 'Block' }}</span>
+                </button>
+              </form>
             @elseif(!auth()->check())
               <a class="btn btn-fill" href="{{ route('login') }}" data-modal="login" style="padding:8px 18px;font-size:13px;white-space:nowrap;">Sign in to follow</a>
               <a class="btn btn-line" href="{{ route('login') }}" data-modal="login" style="padding:8px 14px;font-size:13px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;">
@@ -125,24 +137,37 @@
     <div class="m-box" style="border-color:var(--cyan);box-shadow:0 0 50px rgba(25,227,255,0.3);">
       <button class="m-close" type="button" aria-label="Close modal" onclick="closePrivateMessageModal()">{!! icon('x') !!}</button>
       <h2 id="pmModalTitle" style="color:var(--cyan);font-size:22px;">Send Private Message</h2>
-      <p class="m-sub">Send a direct message to <strong id="pmRecipientName" style="color:#fff;"></strong>. They will also receive an email notification.</p>
+      <p class="m-sub">Anyone can message anyone. Send a direct message to <strong id="pmRecipientName" style="color:#fff;"></strong>. They will also receive an email notification.</p>
 
-      <form method="POST" action="{{ route('action.message') }}" id="pmForm">
+      <p id="pmBlockedNotice" hidden style="padding:12px 14px;border:1px solid rgba(251,113,133,0.45);border-radius:8px;color:#fecdd3;background:rgba(251,113,133,0.08);margin-bottom:12px;"></p>
+      <p style="margin:0 0 12px;"><a id="pmThreadLink" href="{{ route('dashboard.messages') }}" style="color:var(--cyan);font-weight:700;">Open full conversation</a></p>
+
+      <form method="POST" action="{{ route('action.message') }}" id="pmForm" enctype="multipart/form-data">
         @csrf
         <input type="hidden" name="recipient_id" id="pmRecipientId" value="">
         <input type="hidden" name="recipient_username" id="pmRecipientUsername" value="">
 
         <label class="field">
           <span>Subject (Optional)</span>
-          <input type="text" name="subject" placeholder="What's this regarding?">
+          <input type="text" name="subject" maxlength="190" placeholder="What's this regarding?">
         </label>
 
         <label class="field">
           <span>Message</span>
-          <textarea name="body" required placeholder="Write your private message here..." style="min-height:120px;"></textarea>
+          <textarea name="body" maxlength="3000" placeholder="Write your private message here..." style="min-height:120px;"></textarea>
         </label>
 
-        <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:16px;">
+        <label class="field">
+          <span>Attachment (Optional)</span>
+          @if(($messageMaxMb ?? 10) > 0)
+            <input type="file" name="attachment" accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.mp3,.wav,.ogg,.m4a,.pdf,.txt,.zip">
+            <small style="display:block;margin-top:6px;color:var(--mute);">Max {{ rtrim(rtrim(number_format((float) ($messageMaxMb ?? 10), 1, '.', ''), '0'), '.') }} MB. Images, video, audio, PDF, TXT, or ZIP.</small>
+          @else
+            <small style="display:block;color:var(--mute);">File attachments are turned off.</small>
+          @endif
+        </label>
+
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:16px;flex-wrap:wrap;">
           <button type="button" class="btn btn-ghost" onclick="closePrivateMessageModal()">Cancel</button>
           <button type="submit" class="btn btn-fill" style="background:var(--cyan);border-color:var(--cyan);color:#001318;">
             {!! icon('mail') !!} <span>Send Message</span>
@@ -153,12 +178,30 @@
   </div>
 
   <script>
-    function openPrivateMessageModal(userId, username) {
+    function openPrivateMessageModal(userId, username, blockState) {
       const modal = document.getElementById('pmModal');
       if (!modal) return;
       document.getElementById('pmRecipientId').value = userId || '';
       document.getElementById('pmRecipientUsername').value = username || '';
       document.getElementById('pmRecipientName').textContent = '@' + username;
+      const notice = document.getElementById('pmBlockedNotice');
+      const form = document.getElementById('pmForm');
+      const threadLink = document.getElementById('pmThreadLink');
+      if (threadLink) {
+        threadLink.href = '{{ route('dashboard.messages') }}?with=' + encodeURIComponent(username || '');
+      }
+      if (blockState === 'by-me') {
+        notice.hidden = false;
+        notice.textContent = 'You blocked @' + username + '. Unblock them before sending a message.';
+        form.hidden = true;
+      } else if (blockState === 'by-them') {
+        notice.hidden = false;
+        notice.textContent = 'You cannot send messages to this user.';
+        form.hidden = true;
+      } else {
+        notice.hidden = true;
+        form.hidden = false;
+      }
       modal.hidden = false;
       document.body.classList.add('locked');
     }
@@ -170,5 +213,14 @@
         document.body.classList.remove('locked');
       }
     }
+
+    document.getElementById('pmForm')?.addEventListener('submit', function (event) {
+      const body = (this.querySelector('[name="body"]')?.value || '').trim();
+      const file = this.querySelector('[name="attachment"]');
+      if (!body && (!file || !file.files || !file.files.length)) {
+        event.preventDefault();
+        alert('Write a message or choose a file.');
+      }
+    });
   </script>
 @endsection

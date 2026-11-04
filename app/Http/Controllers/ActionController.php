@@ -9,7 +9,12 @@ use App\Models\Blog;
 use App\Models\Post;
 use App\Models\User;
 use App\Models\Message;
+use App\Models\Setting;
+use App\Models\UserBlock;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ActionController extends Controller
 {
@@ -295,10 +300,17 @@ class ActionController extends Controller
             return redirect()->route('login')->with('error', 'Please sign in to send private messages.');
         }
 
-        $request->validate([
-            'body' => 'required|string|min:1|max:3000',
-            'subject' => 'nullable|string|max:190',
-        ]);
+        ensure_private_message_tables();
+
+        $body = trim((string) $request->input('body'));
+        $subject = trim((string) $request->input('subject'));
+
+        if (mb_strlen($body) > 3000) {
+            return $this->messageFail($request, 'Messages can be up to 3000 characters.');
+        }
+        if (mb_strlen($subject) > 190) {
+            return $this->messageFail($request, 'Subject can be up to 190 characters.');
+        }
 
         $recipientId = $request->input('recipient_id');
         $recipientUsername = $request->input('recipient_username') ?: $request->input('recipient');
@@ -307,46 +319,218 @@ class ActionController extends Controller
         if ($recipientId) {
             $recipient = User::find($recipientId);
         } elseif ($recipientUsername) {
-            $recipient = User::whereRaw('LOWER(username) = ?', [strtolower(ltrim($recipientUsername, '@'))])->first();
+            $recipient = User::whereRaw('LOWER(username) = ?', [strtolower(ltrim((string) $recipientUsername, '@'))])->first();
         }
 
         if (!$recipient) {
-            if ($request->wantsJson() || $request->ajax()) {
-                return response()->json(['ok' => false, 'message' => 'Recipient user not found.'], 404);
-            }
-            return redirect()->back()->with('error', 'Recipient user not found.');
+            return $this->messageFail($request, 'Recipient user not found.', 404);
         }
 
         if ($recipient->id === Auth::id()) {
-            if ($request->wantsJson() || $request->ajax()) {
-                return response()->json(['ok' => false, 'message' => 'You cannot send a private message to yourself.'], 422);
-            }
-            return redirect()->back()->with('error', 'You cannot send a private message to yourself.');
+            return $this->messageFail($request, 'You cannot send a private message to yourself.');
         }
 
-        $msg = Message::create([
-            'sender_id' => Auth::id(),
-            'recipient_id' => $recipient->id,
-            'subject' => $request->input('subject') ?: 'Private message',
-            'body' => trim($request->input('body')),
-            'is_read' => false,
-        ]);
+        $me = Auth::user();
+        if ($me->hasBlocked($recipient->id)) {
+            return $this->messageFail($request, 'You blocked @' . $recipient->username . '. Unblock them before sending a message.');
+        }
+        if ($me->isBlockedBy($recipient->id)) {
+            return $this->messageFail($request, 'You cannot send messages to this user.');
+        }
+
+        $storedPath = null;
+        try {
+            $attachment = $this->storeMessageAttachment($request);
+            $storedPath = $attachment['attachment_path'] ?? null;
+
+            if ($body === '' && !$attachment) {
+                return $this->messageFail($request, 'Write a message or attach a file.');
+            }
+
+            $msg = Message::create(array_merge([
+                'sender_id' => $me->id,
+                'recipient_id' => $recipient->id,
+                'subject' => $subject !== '' ? $subject : ($attachment ? 'Attachment' : 'Private message'),
+                'body' => $body,
+                'is_read' => false,
+            ], $attachment ?? []));
+        } catch (\RuntimeException $e) {
+            if ($storedPath) {
+                Storage::disk('local')->delete($storedPath);
+            }
+            return $this->messageFail($request, $e->getMessage());
+        } catch (\Throwable $e) {
+            if ($storedPath) {
+                Storage::disk('local')->delete($storedPath);
+            }
+            Log::warning('Private message send error: ' . $e->getMessage());
+            return $this->messageFail($request, 'Could not send your message. Please try again.');
+        }
 
         try {
-            send_private_message_email($recipient, Auth::user(), $msg);
+            send_private_message_email($recipient, $me, $msg);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Private message notification error: ' . $e->getMessage());
+            Log::warning('Private message notification error: ' . $e->getMessage());
         }
 
-        if ($request->wantsJson() || $request->ajax() || $request->is('*/actions/*')) {
+        $ok = 'Your message to @' . $recipient->username . ' has been sent!';
+        if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'ok' => true,
-                'message' => 'Your message to @' . $recipient->username . ' has been sent!',
+                'message' => $ok,
                 'message_id' => $msg->id,
             ]);
         }
 
-        return redirect()->back()->with('success', 'Your private message to @' . $recipient->username . ' has been sent!');
+        return redirect()->back()->with('success', $ok);
+    }
+
+    public function toggleBlock(Request $request)
+    {
+        if (!Auth::check()) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['ok' => false, 'message' => 'Please sign in to block users.'], 401);
+            }
+            return redirect()->route('login')->with('error', 'Please sign in to block users.');
+        }
+
+        ensure_private_message_tables();
+
+        $target = null;
+        if ($request->filled('user_id')) {
+            $target = User::find($request->input('user_id'));
+        } elseif ($request->filled('username')) {
+            $target = User::whereRaw('LOWER(username) = ?', [strtolower(ltrim((string) $request->input('username'), '@'))])->first();
+        }
+
+        if (!$target) {
+            return $this->messageFail($request, 'User not found.', 404);
+        }
+        if ($target->id === Auth::id()) {
+            return $this->messageFail($request, 'You cannot block yourself.');
+        }
+
+        $existing = UserBlock::where('blocker_id', Auth::id())->where('blocked_id', $target->id)->first();
+        if ($existing) {
+            $existing->delete();
+            $blocked = false;
+            $message = 'You unblocked @' . $target->username . '. You can message each other again.';
+        } else {
+            UserBlock::create([
+                'blocker_id' => Auth::id(),
+                'blocked_id' => $target->id,
+            ]);
+            $blocked = true;
+            $message = 'You blocked @' . $target->username . '. They can no longer message you.';
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['ok' => true, 'blocked' => $blocked, 'message' => $message]);
+        }
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    private function messageFail(Request $request, string $message, int $status = 422)
+    {
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['ok' => false, 'message' => $message], $status);
+        }
+
+        return redirect()->back()->withInput()->with('error', $message);
+    }
+
+    private function messageFileLimitMb(): float
+    {
+        $maxMb = (float) Setting::get('max_message_file_mb', 10);
+        if ($maxMb < 0) {
+            return 0;
+        }
+        if ($maxMb > 500) {
+            return 500;
+        }
+
+        return $maxMb;
+    }
+
+    private function storeMessageAttachment(Request $request): ?array
+    {
+        if (!$request->hasFile('attachment')) {
+            return null;
+        }
+
+        $file = $request->file('attachment');
+        $maxMb = $this->messageFileLimitMb();
+        if ($maxMb <= 0) {
+            throw new \RuntimeException('File attachments in private messages are turned off.');
+        }
+        if (!$file || !$file->isValid()) {
+            throw new \RuntimeException('The file could not be uploaded. It may be larger than the ' . $this->formatMb($maxMb) . ' MB limit.');
+        }
+        if ($file->getSize() <= 0) {
+            throw new \RuntimeException('That file is empty.');
+        }
+        if ($file->getSize() > (int) round($maxMb * 1024 * 1024)) {
+            throw new \RuntimeException('That file is larger than the ' . $this->formatMb($maxMb) . ' MB limit for private messages.');
+        }
+
+        $original = basename(str_replace('\\', '/', (string) $file->getClientOriginalName()));
+        $parts = array_values(array_filter(explode('.', strtolower($original)), fn ($part) => $part !== ''));
+        $ext = $parts ? (string) end($parts) : '';
+        $dangerous = ['php', 'phtml', 'php3', 'php4', 'php5', 'phar', 'exe', 'js', 'html', 'htm', 'svg', 'bat', 'cmd', 'sh', 'cgi', 'pl', 'asp', 'aspx', 'htaccess'];
+        foreach ($parts as $part) {
+            if (in_array($part, $dangerous, true)) {
+                throw new \RuntimeException('That file type is not allowed in private messages.');
+            }
+        }
+
+        $allowed = [
+            'jpg' => ['image/jpeg'],
+            'jpeg' => ['image/jpeg'],
+            'png' => ['image/png'],
+            'gif' => ['image/gif'],
+            'webp' => ['image/webp'],
+            'mp4' => ['video/mp4', 'application/octet-stream'],
+            'webm' => ['video/webm', 'application/octet-stream'],
+            'mov' => ['video/quicktime', 'application/octet-stream'],
+            'mp3' => ['audio/mpeg', 'audio/mp3', 'application/octet-stream'],
+            'wav' => ['audio/wav', 'audio/x-wav', 'application/octet-stream'],
+            'ogg' => ['audio/ogg', 'application/ogg', 'application/octet-stream'],
+            'm4a' => ['audio/mp4', 'audio/x-m4a', 'application/octet-stream'],
+            'pdf' => ['application/pdf'],
+            'txt' => ['text/plain'],
+            'zip' => ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'],
+        ];
+        if (!isset($allowed[$ext])) {
+            throw new \RuntimeException('Allowed files: JPG, PNG, GIF, WEBP, MP4, WEBM, MOV, MP3, WAV, OGG, M4A, PDF, TXT, and ZIP.');
+        }
+
+        $mime = strtolower((string) $file->getMimeType());
+        if ($mime !== '' && !in_array($mime, $allowed[$ext], true)) {
+            throw new \RuntimeException('That file does not match an allowed private message format.');
+        }
+        if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true) && @getimagesize($file->getRealPath()) === false) {
+            throw new \RuntimeException('That image file could not be read.');
+        }
+
+        $safeName = preg_replace('/[^\w.\- ()]+/u', '_', $original) ?: ('file.' . $ext);
+        $safeName = mb_substr($safeName, 0, 180);
+        $stored = $file->storeAs('message-attachments', (string) Str::uuid() . '.' . $ext, 'local');
+        if (!$stored) {
+            throw new \RuntimeException('The file could not be saved. Please try again.');
+        }
+
+        return [
+            'attachment_path' => $stored,
+            'attachment_name' => $safeName,
+            'attachment_mime' => $mime !== '' ? $mime : ($allowed[$ext][0] ?? 'application/octet-stream'),
+            'attachment_size' => $file->getSize(),
+        ];
+    }
+
+    private function formatMb(float $mb): string
+    {
+        return rtrim(rtrim(number_format($mb, 1, '.', ''), '0'), '.');
     }
 
     public function deletePost(Request $request)

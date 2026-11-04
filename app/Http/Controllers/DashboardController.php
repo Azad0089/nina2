@@ -661,38 +661,177 @@ class DashboardController extends Controller implements HasMiddleware
 
     public function messages(Request $request)
     {
+        ensure_private_message_tables();
+
         $user = Auth::user();
-        $tab = $request->query('tab', 'inbox');
+        $tab = $request->query('tab') === 'blocked' ? 'blocked' : 'inbox';
         $settings = Setting::pluck('value', 'key')->all();
-
-        $receivedMessages = $user->receivedMessages()->with('sender.mainBlog')->paginate(15);
-        $sentMessages = $user->sentMessages()->with('recipient.mainBlog')->paginate(15);
-
-        // Mark unread received messages as read when viewing inbox
-        if ($tab === 'inbox') {
-            $user->receivedMessages()->where('is_read', false)->update(['is_read' => true]);
+        $maxMessageMb = (float) ($settings['max_message_file_mb'] ?? Setting::get('max_message_file_mb', 10));
+        if ($maxMessageMb < 0) {
+            $maxMessageMb = 0;
         }
+
+        $with = trim(ltrim((string) $request->query('with', ''), '@'));
+        $partner = null;
+        $threadNotice = null;
+        if ($with !== '') {
+            $partner = User::with('mainBlog')->whereRaw('LOWER(username) = ?', [strtolower($with)])->first();
+            if (!$partner) {
+                $threadNotice = 'That user was not found.';
+            } elseif ($partner->id === $user->id) {
+                $partner = null;
+                $threadNotice = 'You cannot message yourself.';
+            }
+        }
+
+        $isBlockedByMe = $partner ? $user->hasBlocked($partner->id) : false;
+        $hasBlockedMe = $partner ? $user->isBlockedBy($partner->id) : false;
+
+        if ($partner) {
+            Message::where('sender_id', $partner->id)
+                ->where('recipient_id', $user->id)
+                ->where('is_read', false)
+                ->update(['is_read' => true]);
+        }
+
+        $uid = (int) $user->id;
+        try {
+            $latestIds = Message::query()
+                ->selectRaw('MAX(id) as id')
+                ->where(function ($q) use ($uid) {
+                    $q->where('sender_id', $uid)->orWhere('recipient_id', $uid);
+                })
+                ->groupByRaw("CASE WHEN sender_id = {$uid} THEN recipient_id ELSE sender_id END")
+                ->pluck('id');
+        } catch (\Throwable $e) {
+            $latestIds = collect();
+            $seen = [];
+            $fallback = Message::query()
+                ->where(function ($q) use ($uid) {
+                    $q->where('sender_id', $uid)->orWhere('recipient_id', $uid);
+                })
+                ->orderByDesc('id')
+                ->get(['id', 'sender_id', 'recipient_id']);
+            foreach ($fallback as $row) {
+                $otherId = (int) ($row->sender_id === $uid ? $row->recipient_id : $row->sender_id);
+                if (isset($seen[$otherId])) {
+                    continue;
+                }
+                $seen[$otherId] = true;
+                $latestIds->push($row->id);
+            }
+        }
+
+        $latestMessages = $latestIds->isEmpty()
+            ? collect()
+            : Message::with(['sender.mainBlog', 'recipient.mainBlog'])->whereIn('id', $latestIds)->orderByDesc('id')->get();
+
+        $unreadBySender = Message::query()
+            ->where('recipient_id', $uid)
+            ->where('is_read', false)
+            ->selectRaw('sender_id, COUNT(*) as unread_count')
+            ->groupBy('sender_id')
+            ->pluck('unread_count', 'sender_id');
+
+        $conversations = $latestMessages->map(function ($message) use ($user, $unreadBySender) {
+            $mine = (int) $message->sender_id === (int) $user->id;
+            $other = $mine ? $message->recipient : $message->sender;
+            $otherId = $other->id ?? ($mine ? $message->recipient_id : $message->sender_id);
+
+            return [
+                'user' => $other,
+                'user_id' => $otherId,
+                'last' => $message,
+                'unread' => (int) ($unreadBySender[$otherId] ?? 0),
+            ];
+        })->values();
+
+        $thread = collect();
+        $threadHasOlder = false;
+        if ($partner) {
+            $threadQuery = Message::with(['sender', 'recipient'])
+                ->where(function ($q) use ($user, $partner) {
+                    $q->where(function ($q2) use ($user, $partner) {
+                        $q2->where('sender_id', $user->id)->where('recipient_id', $partner->id);
+                    })->orWhere(function ($q2) use ($user, $partner) {
+                        $q2->where('sender_id', $partner->id)->where('recipient_id', $user->id);
+                    });
+                });
+            $threadTotal = (clone $threadQuery)->count();
+            $thread = $threadQuery->orderByDesc('id')->limit(100)->get()->sortBy('id')->values();
+            $threadHasOlder = $threadTotal > $thread->count();
+        }
+
+        $blockedUsers = $user->blockedUsers()->orderBy('username')->get();
 
         return view('dashboard', [
             'section' => 'messages',
             'tab' => $tab,
             'user' => $user,
             'blog' => $user->mainBlog,
-            'receivedMessages' => $receivedMessages,
-            'sentMessages' => $sentMessages,
             'settings' => $settings,
+            'conversations' => $conversations,
+            'partner' => $partner,
+            'thread' => $thread,
+            'threadHasOlder' => $threadHasOlder,
+            'threadNotice' => $threadNotice,
+            'blockedUsers' => $blockedUsers,
+            'isBlockedByMe' => $isBlockedByMe,
+            'hasBlockedMe' => $hasBlockedMe,
+            'canMessage' => $partner && !$isBlockedByMe && !$hasBlockedMe,
+            'maxMessageMb' => $maxMessageMb,
         ]);
     }
 
     public function deleteMessage($id)
     {
         $user = Auth::user();
-        $msg = Message::where(function($q) use ($user) {
+        $msg = Message::where(function ($q) use ($user) {
             $q->where('recipient_id', $user->id)->orWhere('sender_id', $user->id);
         })->findOrFail($id);
 
+        $this->deleteMessageFile($msg);
         $msg->delete();
+
         return redirect()->back()->with('success', 'Private message deleted.');
+    }
+
+    public function messageAttachment($id)
+    {
+        ensure_private_message_tables();
+
+        $user = Auth::user();
+        $msg = Message::findOrFail($id);
+        if ((int) $msg->sender_id !== (int) $user->id && (int) $msg->recipient_id !== (int) $user->id) {
+            abort(403);
+        }
+
+        $path = (string) $msg->attachment_path;
+        if ($path === '' || str_contains($path, '..') || !str_starts_with($path, 'message-attachments/')) {
+            abort(404);
+        }
+        if (!Storage::disk('local')->exists($path)) {
+            abort(404);
+        }
+
+        $name = str_replace(['"', "\r", "\n"], '', $msg->attachment_name ?: basename($path));
+        $kind = $msg->attachmentKind();
+        $disposition = in_array($kind, ['image', 'video', 'audio'], true) ? 'inline' : 'attachment';
+
+        return response()->file(Storage::disk('local')->path($path), [
+            'Content-Type' => $msg->attachment_mime ?: 'application/octet-stream',
+            'Content-Disposition' => $disposition . '; filename="' . $name . '"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, max-age=3600',
+        ]);
+    }
+
+    private function deleteMessageFile(Message $msg): void
+    {
+        $path = (string) $msg->attachment_path;
+        if ($path !== '' && !str_contains($path, '..') && str_starts_with($path, 'message-attachments/')) {
+            Storage::disk('local')->delete($path);
+        }
     }
 
     public function notifications()

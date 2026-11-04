@@ -25,6 +25,12 @@ class AppServiceProvider extends ServiceProvider
         // Ensure MariaDB 10.5.29 and older MySQL index length compatibility
         Schema::defaultStringLength(191);
 
+        try {
+            ensure_private_message_tables();
+        } catch (\Throwable $e) {
+            // Schema is created again on the next request if the database is not ready yet.
+        }
+
         // Share common settings with all views safely
         try {
             if (Schema::hasTable('settings')) {

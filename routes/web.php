@@ -99,6 +99,8 @@ Route::post('/actions/contact', [ActionController::class, 'contact'])->name('act
 Route::post('/actions/contact.php', [ActionController::class, 'contact']);
 Route::post('/actions/message', [ActionController::class, 'sendPrivateMessage'])->name('action.message');
 Route::post('/actions/message.php', [ActionController::class, 'sendPrivateMessage']);
+Route::post('/actions/block', [ActionController::class, 'toggleBlock'])->name('action.block');
+Route::post('/actions/block.php', [ActionController::class, 'toggleBlock']);
 
 // Advertising & Promotions
 Route::get('/advertising', [PromotionController::class, 'index'])->name('advertising');
@@ -198,6 +200,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/dashboard/blogs/{id}/delete', [DashboardController::class, 'deleteBlog'])->name('dashboard.blogs.delete');
     Route::get('/dashboard/referrals', [DashboardController::class, 'referrals'])->name('dashboard.referrals');
     Route::get('/dashboard/messages', [DashboardController::class, 'messages'])->name('dashboard.messages');
+    Route::get('/dashboard/messages/attachment/{id}', [DashboardController::class, 'messageAttachment'])->name('dashboard.messages.attachment');
     Route::post('/dashboard/messages/{id}/delete', [DashboardController::class, 'deleteMessage'])->name('dashboard.messages.delete');
     Route::get('/dashboard/notifications', [DashboardController::class, 'notifications'])->name('dashboard.notifications');
     Route::post('/dashboard/notifications', [DashboardController::class, 'updateNotifications'])->name('dashboard.notifications.update');

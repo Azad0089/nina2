@@ -2052,158 +2052,209 @@
       <!-- ================= SECTION: MESSAGES / INBOX ================= -->
       @elseif(($section ?? '') === 'messages')
         @php
-          $currentTab = $tab ?? 'inbox';
-          $messagesList = $currentTab === 'sent' ? $sentMessages : $receivedMessages;
+          $currentTab = ($tab ?? 'inbox') === 'blocked' ? 'blocked' : 'inbox';
+          $partnerUser = $partner ?? null;
+          $maxMbLabel = rtrim(rtrim(number_format((float) ($maxMessageMb ?? 10), 1, '.', ''), '0'), '.');
         @endphp
 
-        <div class="max-w-4xl mx-auto space-y-6">
-          <div class="p-6 lg:p-8 rounded-2xl bg-[#0f0716] border border-white/10">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-white/10">
-              <div>
-                <h2 class="text-xl font-display font-black text-white flex items-center gap-2">
-                  <span>Private Messages</span>
-                  <span class="text-xs px-2.5 py-0.5 bg-cyan-500/20 text-cyan-400 font-sans font-bold rounded-full">Direct Inbox</span>
-                </h2>
-                <p class="text-xs lg:text-sm text-slate-400 mt-1">
-                  Private conversations between creators. You also receive email alerts for incoming messages.
-                </p>
+        <div class="max-w-6xl mx-auto">
+          <div class="mb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div>
+              <h2 class="text-xl font-display font-black text-white">Private Messages</h2>
+              <p class="text-xs lg:text-sm text-slate-400 mt-1">Message any member. No follow is required. Block someone if you do not want to hear from them.</p>
+            </div>
+            <button type="button" onclick="document.getElementById('composeCard').classList.toggle('hidden')" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-600 hover:from-pink-400 hover:to-fuchsia-500 text-white font-bold text-xs shadow-lg shadow-pink-500/20 transition flex items-center gap-2 self-start">
+              {!! icon('plus') !!}
+              <span>New Message</span>
+            </button>
+          </div>
+
+          <div id="composeCard" class="hidden mb-4 p-4 rounded-xl bg-[#170a22] border border-pink-500/30">
+            <form method="GET" action="{{ route('dashboard.messages') }}" class="flex flex-col sm:flex-row gap-2 sm:items-end">
+              <div class="flex-1">
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Open a chat with</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-xs text-pink-400 font-bold">@</span>
+                  <input type="text" name="with" required placeholder="username" class="w-full bg-[#07030d] border border-white/10 rounded-xl pl-7 pr-3 py-2 text-xs text-white focus:outline-none focus:border-pink-500">
+                </div>
+              </div>
+              <button type="submit" class="px-4 py-2 rounded-xl bg-pink-500 hover:bg-pink-400 text-white font-bold text-xs">Open chat</button>
+            </form>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+            <aside class="lg:col-span-4 rounded-2xl bg-[#0f0716] border border-white/10 overflow-hidden {{ $partnerUser ? 'hidden lg:block' : '' }}">
+              <div class="flex gap-2 p-3 border-b border-white/10">
+                <a href="{{ route('dashboard.messages') }}" class="px-3 py-1.5 rounded-lg text-xs font-bold {{ $currentTab === 'inbox' ? 'bg-pink-500 text-white' : 'bg-white/5 text-slate-400 hover:text-white' }}">Inbox</a>
+                <a href="{{ route('dashboard.messages', ['tab' => 'blocked']) }}" class="px-3 py-1.5 rounded-lg text-xs font-bold {{ $currentTab === 'blocked' ? 'bg-pink-500 text-white' : 'bg-white/5 text-slate-400 hover:text-white' }}">Blocked ({{ isset($blockedUsers) ? $blockedUsers->count() : 0 }})</a>
               </div>
 
-              <button type="button" onclick="document.getElementById('composeCard').classList.toggle('hidden')" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-600 hover:from-pink-400 hover:to-fuchsia-500 text-white font-bold text-xs shadow-lg shadow-pink-500/20 transition flex items-center gap-2 self-start">
-                {!! icon('plus') !!}
-                <span>New Message</span>
-              </button>
-            </div>
+              @if($currentTab === 'blocked')
+                <div class="p-3 space-y-2 max-h-[640px] overflow-y-auto custom-scrollbar">
+                  @forelse(($blockedUsers ?? collect()) as $blockedUser)
+                    <div class="flex items-center justify-between gap-2 p-3 rounded-xl bg-[#170a22] border border-white/10">
+                      <a href="{{ url('/u/' . $blockedUser->username) }}" class="text-sm font-bold text-white hover:text-pink-300">&#64;{{ $blockedUser->username }}</a>
+                      <form method="POST" action="{{ route('action.block') }}">
+                        @csrf
+                        <input type="hidden" name="user_id" value="{{ $blockedUser->id }}">
+                        <button type="submit" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white/5 hover:bg-white/10 text-cyan-300">Unblock</button>
+                      </form>
+                    </div>
+                  @empty
+                    <p class="text-xs text-slate-400 px-2 py-8 text-center">You have not blocked anyone.</p>
+                  @endforelse
+                </div>
+              @else
+                <div class="max-h-[640px] overflow-y-auto custom-scrollbar">
+                  @forelse(($conversations ?? collect()) as $conversation)
+                    @php
+                      $other = $conversation['user'] ?? null;
+                      $otherName = $other->username ?? 'Former member';
+                      $otherBlog = $other->mainBlog ?? null;
+                      $color = $otherBlog && $otherBlog->color ? $otherBlog->color : '#ff2bd6';
+                      $isActive = $partnerUser && $other && (int) $partnerUser->id === (int) $other->id;
+                      $preview = trim((string) ($conversation['last']->body ?? ''));
+                      if ($preview === '' && !empty($conversation['last']->attachment_name)) {
+                          $preview = 'Sent a file';
+                      }
+                    @endphp
+                    @if($other)
+                      <a href="{{ route('dashboard.messages', ['with' => $otherName]) }}" class="flex items-start gap-3 px-3 py-3 border-b border-white/5 hover:bg-white/5 {{ $isActive ? 'bg-pink-500/10' : '' }}">
+                        <span class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white flex-shrink-0" style="background:{{ $color }}">{{ initial($otherName) }}</span>
+                        <span class="min-w-0 flex-1">
+                          <span class="flex items-center justify-between gap-2">
+                            <span class="text-sm font-bold text-white truncate">&#64;{{ $otherName }}</span>
+                            @if(($conversation['unread'] ?? 0) > 0)
+                              <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-400 text-slate-950 font-black">{{ $conversation['unread'] }}</span>
+                            @endif
+                          </span>
+                          <span class="block text-[11px] text-slate-400 truncate">{{ \Illuminate\Support\Str::limit($preview, 70) }}</span>
+                        </span>
+                      </a>
+                    @endif
+                  @empty
+                    <div class="px-4 py-12 text-center text-slate-400">
+                      <p class="text-sm font-bold text-white mb-1">No conversations yet</p>
+                      <p class="text-xs">Open a chat, or use Message on someone&apos;s profile.</p>
+                    </div>
+                  @endforelse
+                </div>
+              @endif
+            </aside>
 
-            <!-- Quick Compose Box (Collapsible) -->
-            <div id="composeCard" class="hidden mb-6 p-5 rounded-xl bg-[#170a22] border border-pink-500/30 shadow-xl">
-              <h3 class="text-sm font-display font-bold text-white mb-3 flex items-center gap-2">
-                <span>Compose Private Message</span>
-              </h3>
-              <form method="POST" action="{{ route('action.message') }}" class="space-y-3">
-                @csrf
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Recipient Username</label>
-                    <div class="relative">
-                      <span class="absolute left-3 top-2.5 text-xs text-pink-400 font-bold">@</span>
-                      <input type="text" name="recipient_username" required placeholder="creator_username" class="w-full bg-[#07030d] border border-white/10 rounded-xl pl-7 pr-3 py-2 text-xs text-white focus:outline-none focus:border-pink-500">
+            <section class="lg:col-span-8 rounded-2xl bg-[#0f0716] border border-white/10 min-h-[520px] flex-col {{ $partnerUser ? 'flex' : 'hidden lg:flex' }}">
+              @if($partnerUser)
+                @php
+                  $partnerBlog = $partnerUser->mainBlog;
+                  $partnerColor = $partnerBlog && $partnerBlog->color ? $partnerBlog->color : '#ff2bd6';
+                @endphp
+                <div class="flex items-center justify-between gap-3 p-4 border-b border-white/10">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <a href="{{ route('dashboard.messages') }}" class="lg:hidden text-slate-400 hover:text-white">{!! icon('left') !!}</a>
+                    <span class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white flex-shrink-0" style="background:{{ $partnerColor }}">{{ initial($partnerUser->username) }}</span>
+                    <div class="min-w-0">
+                      <a href="{{ url('/u/' . $partnerUser->username) }}" class="font-bold text-white hover:text-pink-300 truncate block">&#64;{{ $partnerUser->username }}</a>
+                      <p class="text-[11px] text-slate-400">Direct conversation</p>
                     </div>
                   </div>
-                  <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Subject (Optional)</label>
-                    <input type="text" name="subject" placeholder="What's this regarding?" class="w-full bg-[#07030d] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-pink-500">
-                  </div>
+                  <form method="POST" action="{{ route('action.block') }}" onsubmit="return confirm({{ json_encode(!empty($isBlockedByMe) ? 'Unblock @'.$partnerUser->username.'?' : 'Block @'.$partnerUser->username.'? You will not be able to message each other until you unblock.') }});">
+                    @csrf
+                    <input type="hidden" name="user_id" value="{{ $partnerUser->id }}">
+                    <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-white/10 {{ !empty($isBlockedByMe) ? 'text-cyan-300 bg-cyan-500/10' : 'text-rose-300 bg-rose-500/10' }}">
+                      {{ !empty($isBlockedByMe) ? 'Unblock' : 'Block' }}
+                    </button>
+                  </form>
                 </div>
-                <div>
-                  <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Message Content</label>
-                  <textarea name="body" required rows="3" placeholder="Write your message here..." class="w-full bg-[#07030d] border border-white/10 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-pink-500 leading-relaxed"></textarea>
-                </div>
-                <div class="flex items-center justify-end gap-2 pt-1">
-                  <button type="button" onclick="document.getElementById('composeCard').classList.add('hidden')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition">Cancel</button>
-                  <button type="submit" class="px-4 py-2 rounded-xl bg-pink-500 hover:bg-pink-400 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5">
-                    {!! icon('mail') !!} <span>Send Message</span>
-                  </button>
-                </div>
-              </form>
-            </div>
 
-            <!-- Tabs: Received vs Sent -->
-            <div class="flex items-center gap-2 mb-6 border-b border-white/10 pb-3">
-              <a href="{{ route('dashboard.messages', ['tab' => 'inbox']) }}" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {{ $currentTab === 'inbox' ? 'bg-pink-500 text-white shadow-md shadow-pink-500/25' : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' }}">
-                <span>Inbox</span>
-                <span class="px-1.5 py-0.5 rounded-full text-[10px] {{ $currentTab === 'inbox' ? 'bg-black/30 text-white' : 'bg-white/10 text-slate-400' }}">{{ $receivedMessages->total() }}</span>
-              </a>
-              <a href="{{ route('dashboard.messages', ['tab' => 'sent']) }}" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {{ $currentTab === 'sent' ? 'bg-pink-500 text-white shadow-md shadow-pink-500/25' : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' }}">
-                <span>Sent Messages</span>
-                <span class="px-1.5 py-0.5 rounded-full text-[10px] {{ $currentTab === 'sent' ? 'bg-black/30 text-white' : 'bg-white/10 text-slate-400' }}">{{ $sentMessages->total() }}</span>
-              </a>
-            </div>
-
-            <!-- Messages Stream -->
-            @if($messagesList->isEmpty())
-              <div class="py-16 text-center text-slate-400">
-                <div class="w-12 h-12 rounded-xl bg-white/5 text-slate-500 mx-auto flex items-center justify-center mb-3">
-                  {!! icon('mail') !!}
-                </div>
-                <h3 class="font-bold text-white text-base mb-1">
-                  {{ $currentTab === 'sent' ? 'No sent messages' : 'Your inbox is empty' }}
-                </h3>
-                <p class="text-xs text-slate-400 max-w-sm mx-auto mb-4">
-                  {{ $currentTab === 'sent' ? 'You have not sent any private messages yet.' : 'When other members send you direct messages, they will appear right here.' }}
-                </p>
-                <button type="button" onclick="document.getElementById('composeCard').classList.remove('hidden')" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-pink-500 text-white text-xs font-bold hover:bg-pink-400 transition">
-                  {!! icon('plus') !!} <span>Compose Message</span>
-                </button>
-              </div>
-            @else
-              <div class="space-y-3">
-                @foreach($messagesList as $m)
-                  @php
-                    $isSender = $m->sender_id === auth()->id();
-                    $otherUser = $isSender ? $m->recipient : $m->sender;
-                    $otherName = $otherUser ? $otherUser->username : 'Former Member';
-                    $otherBlog = $otherUser ? $otherUser->mainBlog : null;
-                    $color = $otherBlog && $otherBlog->color ? $otherBlog->color : '#ff2bd6';
-                  @endphp
-                  <div class="p-4 rounded-xl bg-[#170a22] border {{ !$isSender && !$m->is_read ? 'border-cyan-400/50 shadow-md shadow-cyan-400/10' : 'border-white/10' }} transition hover:border-pink-500/40">
-                    <div class="flex items-start justify-between gap-3 mb-2">
-                      <div class="flex items-center gap-3">
-                        <span class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 text-white shadow-sm" style="background:{{ $color }}">
-                          {{ initial($otherName) }}
-                        </span>
-                        <div>
-                          <div class="flex items-center gap-2 flex-wrap">
-                            <span class="font-bold text-xs text-white">
-                              {{ $isSender ? 'To: @' : 'From: @' }}{{ $otherName }}
-                            </span>
-                            @if($otherUser)
-                              {!! badge($otherUser) !!}
+                <div id="pmThread" class="flex-1 overflow-y-auto max-h-[520px] p-4 space-y-3 custom-scrollbar">
+                  @if(!empty($threadHasOlder))
+                    <p class="text-center text-[11px] text-slate-500">Showing the latest 100 messages.</p>
+                  @endif
+                  @forelse(($thread ?? collect()) as $m)
+                    @php $mine = (int) $m->sender_id === (int) auth()->id(); @endphp
+                    <div class="flex {{ $mine ? 'justify-end' : 'justify-start' }}">
+                      <div class="max-w-[85%] rounded-2xl px-3 py-2 {{ $mine ? 'bg-pink-500/15 border border-pink-500/30' : 'bg-white/5 border border-white/10' }}">
+                        @if(!empty($m->subject) && !in_array($m->subject, ['Private message', 'Attachment'], true))
+                          <p class="text-[11px] font-bold text-slate-200 mb-1">{{ $m->subject }}</p>
+                        @endif
+                        @if(trim((string) $m->body) !== '')
+                          <p class="text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">{{ $m->body }}</p>
+                        @endif
+                        @if($m->hasAttachment())
+                          <div class="mt-2">
+                            @if($m->attachmentKind() === 'image')
+                              <a href="{{ $m->attachmentUrl() }}" target="_blank" rel="noopener">
+                                <img src="{{ $m->attachmentUrl() }}" alt="{{ $m->attachment_name }}" class="max-h-64 rounded-lg border border-white/10">
+                              </a>
+                            @elseif($m->attachmentKind() === 'video')
+                              <video src="{{ $m->attachmentUrl() }}" controls class="max-h-64 rounded-lg bg-black"></video>
+                            @elseif($m->attachmentKind() === 'audio')
+                              <audio src="{{ $m->attachmentUrl() }}" controls class="w-full"></audio>
                             @endif
-                            @if(!$isSender && !$m->is_read)
-                              <span class="text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-1.5 py-0.2 rounded font-black">NEW</span>
-                            @endif
+                            <a href="{{ $m->attachmentUrl() }}" class="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-cyan-300 hover:text-cyan-200" @if($m->attachmentKind() === 'file') download @endif>
+                              {!! icon('clip') !!}
+                              <span>{{ $m->attachment_name }}</span>
+                              <span class="text-slate-500 font-medium">({{ $m->attachmentSizeLabel() }})</span>
+                            </a>
                           </div>
-                          <p class="text-[11px] text-slate-400 mt-0.5">
-                            {{ $m->created_at ? $m->created_at->diffForHumans() : 'Recently' }}
-                          </p>
+                        @endif
+                        <div class="mt-1 flex items-center justify-between gap-3">
+                          <span class="text-[10px] text-slate-500">{{ $m->created_at ? $m->created_at->diffForHumans() : '' }}</span>
+                          <form method="POST" action="{{ route('dashboard.messages.delete', $m->id) }}" onsubmit="return confirm('Delete this message for both of you?');">
+                            @csrf
+                            <button type="submit" class="text-slate-500 hover:text-rose-400" title="Delete message">{!! icon('trash') !!}</button>
+                          </form>
                         </div>
                       </div>
+                    </div>
+                  @empty
+                    <p class="text-center text-sm text-slate-400 py-16">No messages yet. Say hello below.</p>
+                  @endforelse
+                </div>
 
-                      <div class="flex items-center gap-1.5 flex-shrink-0">
-                        @if(!$isSender && $otherUser)
-                          <button type="button" onclick="document.getElementById('composeCard').classList.remove('hidden');document.querySelector('input[name=recipient_username]').value='{{ $otherName }}';document.querySelector('input[name=subject]').value='Re: {{ addslashes($m->subject ?? 'Message') }}';" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white/5 hover:bg-white/10 text-cyan-300 border border-white/10 transition">
-                            Reply
-                          </button>
-                        @endif
-                        <form method="POST" action="{{ route('dashboard.messages.delete', $m->id) }}" onsubmit="return confirm('Delete this message?');">
-                          @csrf
-                          <button type="submit" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition" title="Delete message">
-                            {!! icon('trash') !!}
-                          </button>
-                        </form>
+                <div class="p-4 border-t border-white/10">
+                  @if(!empty($isBlockedByMe))
+                    <p class="text-sm text-rose-300">You blocked &#64;{{ $partnerUser->username }}. Unblock them to send a message.</p>
+                  @elseif(!empty($hasBlockedMe))
+                    <p class="text-sm text-rose-300">You cannot send messages to this user.</p>
+                  @else
+                    <form method="POST" action="{{ route('action.message') }}" enctype="multipart/form-data" class="space-y-2">
+                      @csrf
+                      <input type="hidden" name="recipient_id" value="{{ $partnerUser->id }}">
+                      <input type="hidden" name="recipient_username" value="{{ $partnerUser->username }}">
+                      <input type="text" name="subject" maxlength="190" placeholder="Subject (optional)" value="{{ old('subject') }}" class="w-full bg-[#07030d] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-pink-500">
+                      <textarea name="body" rows="3" maxlength="3000" placeholder="Write a message..." class="w-full bg-[#07030d] border border-white/10 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-pink-500">{{ old('body') }}</textarea>
+                      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <label class="text-[11px] text-slate-400 flex items-center gap-2">
+                          @if(($maxMessageMb ?? 10) > 0)
+                            {!! icon('clip') !!}
+                            <input type="file" name="attachment" accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.mp3,.wav,.ogg,.m4a,.pdf,.txt,.zip" class="text-[11px] text-slate-300 file:mr-2 file:rounded-lg file:border-0 file:bg-white/10 file:px-2 file:py-1 file:text-white">
+                            <span>Max {{ $maxMbLabel }} MB</span>
+                          @else
+                            <span>File attachments are turned off.</span>
+                          @endif
+                        </label>
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-pink-500 hover:bg-pink-400 text-white font-bold text-xs">{!! icon('mail') !!} <span>Send</span></button>
                       </div>
-                    </div>
-
-                    @if(!empty($m->subject))
-                      <h4 class="text-xs font-bold text-slate-200 mb-1 pl-11">
-                        {{ $m->subject }}
-                      </h4>
-                    @endif
-
-                    <div class="text-xs text-slate-300 leading-relaxed pl-11 whitespace-pre-wrap font-sans">
-                      {{ $m->body }}
-                    </div>
+                    </form>
+                  @endif
+                </div>
+              @else
+                <div class="flex-1 flex items-center justify-center p-8 text-center">
+                  <div>
+                    <div class="w-12 h-12 rounded-xl bg-white/5 text-slate-500 mx-auto flex items-center justify-center mb-3">{!! icon('mail') !!}</div>
+                    <h3 class="font-bold text-white mb-1">{{ $threadNotice ?: 'Choose a conversation' }}</h3>
+                    <p class="text-xs text-slate-400 max-w-sm">Pick someone from the inbox, or start a new message. You can also press Message on any member&apos;s profile.</p>
                   </div>
-                @endforeach
-              </div>
-
-              <div class="mt-4">
-                {{ $messagesList->links() }}
-              </div>
-            @endif
+                </div>
+              @endif
+            </section>
           </div>
         </div>
+        <script>
+          const pmThread = document.getElementById('pmThread');
+          if (pmThread) pmThread.scrollTop = pmThread.scrollHeight;
+        </script>
 
 
       <!-- ================= SECTION: NOTIFICATIONS PREFERENCES ================= -->

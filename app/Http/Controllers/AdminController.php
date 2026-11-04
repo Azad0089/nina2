@@ -134,7 +134,7 @@ class AdminController extends Controller
             'bitcart_enabled', 'qr_code_enabled',
             'premium_price_usd', 'premium_plus_price_usd',
             'premium_price_points', 'premium_plus_price_points',
-            'referral_reward_points', 'max_media_mb', 'max_image_mb', 'max_video_mb', 'max_audio_mb',
+            'referral_reward_points', 'max_media_mb', 'max_image_mb', 'max_video_mb', 'max_audio_mb', 'max_message_file_mb',
             'allowed_image_ext', 'allowed_video_ext',
             'pkg_cpm_1k', 'pkg_cpm_5k', 'pkg_cpm_25k', 'pkg_cpm_100k',
             'pkg_flat_1d', 'pkg_flat_7d', 'pkg_flat_30d',
@@ -167,6 +167,10 @@ class AdminController extends Controller
         $settingsToSave['welcome_email_enabled'] = ($request->input('welcome_email_enabled') == '1') ? '1' : '0';
         $settingsToSave['email_verification_enabled'] = ($request->input('email_verification_enabled') == '1') ? '1' : '0';
         $settingsToSave['admin_notify_signup'] = ($request->input('admin_notify_signup') == '1') ? '1' : '0';
+
+        if (array_key_exists('max_message_file_mb', $settingsToSave)) {
+            $settingsToSave['max_message_file_mb'] = (string) max(0, min(500, (float) $settingsToSave['max_message_file_mb']));
+        }
 
         $maxImageMb = (float) Setting::get('max_image_mb', 5);
         $maxImageBytes = (int)($maxImageMb * 1024 * 1024);

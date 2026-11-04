@@ -1678,6 +1678,15 @@
                     </div>
                   </div>
 
+                  <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-fuchsia-300 mb-1.5">Max Private Message File (MB)</label>
+                    <div class="relative">
+                      <input type="number" step="1" min="0" max="500" name="max_message_file_mb" value="{{ $settings['max_message_file_mb'] ?? 10 }}" class="w-full px-3.5 py-2.5 bg-[#170a22] border border-white/10 rounded-xl text-white font-mono focus:outline-none focus:border-fuchsia-400">
+                      <span class="absolute right-3.5 top-3 text-xs text-slate-400 font-bold">MB</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400 mt-1 block">Largest file a member can attach to a private message. Set 0 to turn attachments off. Images, video, audio, PDF, TXT, and ZIP are allowed.</span>
+                  </div>
+
                   <input type="hidden" name="max_media_mb" value="{{ $settings['max_video_mb'] ?? 50 }}">
                 </div>
 

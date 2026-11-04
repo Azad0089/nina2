@@ -725,6 +725,108 @@ HTML;
     }
 }
 
+if (!function_exists('private_message_user_id')) {
+    function private_message_user_id($table, string $column): void
+    {
+        $type = 'integer';
+        try {
+            $type = strtolower((string) \Illuminate\Support\Facades\Schema::getColumnType('users', 'id'));
+        } catch (\Throwable $e) {}
+
+        if (str_contains($type, 'bigint')) {
+            $table->unsignedBigInteger($column);
+        } else {
+            $table->unsignedInteger($column);
+        }
+
+        $table->foreign($column)->references('id')->on('users')->cascadeOnDelete();
+    }
+}
+
+if (!function_exists('ensure_private_message_tables')) {
+    function ensure_private_message_tables(): void
+    {
+        static $done = false;
+        if ($done) {
+            return;
+        }
+
+        try {
+            $schema = \Illuminate\Support\Facades\Schema::class;
+
+            if ($schema::hasTable('messages')
+                && $schema::hasColumn('messages', 'attachment_path')
+                && $schema::hasColumn('messages', 'attachment_name')
+                && $schema::hasColumn('messages', 'attachment_mime')
+                && $schema::hasColumn('messages', 'attachment_size')
+                && $schema::hasTable('user_blocks')) {
+                $done = true;
+                return;
+            }
+
+            if (!$schema::hasTable('messages')) {
+                $schema::create('messages', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->id();
+                    private_message_user_id($table, 'sender_id');
+                    private_message_user_id($table, 'recipient_id');
+                    $table->string('subject', 190)->nullable();
+                    $table->text('body')->nullable();
+                    $table->boolean('is_read')->default(false);
+                    $table->string('attachment_path')->nullable();
+                    $table->string('attachment_name')->nullable();
+                    $table->string('attachment_mime', 120)->nullable();
+                    $table->unsignedBigInteger('attachment_size')->nullable();
+                    $table->timestamps();
+                });
+            } else {
+                $add = [];
+                if (!$schema::hasColumn('messages', 'attachment_path')) {
+                    $add[] = 'attachment_path';
+                }
+                if (!$schema::hasColumn('messages', 'attachment_name')) {
+                    $add[] = 'attachment_name';
+                }
+                if (!$schema::hasColumn('messages', 'attachment_mime')) {
+                    $add[] = 'attachment_mime';
+                }
+                if (!$schema::hasColumn('messages', 'attachment_size')) {
+                    $add[] = 'attachment_size';
+                }
+                if ($add) {
+                    $schema::table('messages', function (\Illuminate\Database\Schema\Blueprint $table) use ($add) {
+                        if (in_array('attachment_path', $add, true)) {
+                            $table->string('attachment_path')->nullable();
+                        }
+                        if (in_array('attachment_name', $add, true)) {
+                            $table->string('attachment_name')->nullable();
+                        }
+                        if (in_array('attachment_mime', $add, true)) {
+                            $table->string('attachment_mime', 120)->nullable();
+                        }
+                        if (in_array('attachment_size', $add, true)) {
+                            $table->unsignedBigInteger('attachment_size')->nullable();
+                        }
+                    });
+                }
+            }
+
+            if (!$schema::hasTable('user_blocks')) {
+                $schema::create('user_blocks', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->id();
+                    private_message_user_id($table, 'blocker_id');
+                    private_message_user_id($table, 'blocked_id');
+                    $table->timestamps();
+                    $table->unique(['blocker_id', 'blocked_id']);
+                });
+            }
+
+            $done = true;
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Private message schema ensure failed: ' . $e->getMessage());
+        }
+    }
+}
+
 if (!function_exists('send_private_message_email')) {
     function send_private_message_email($recipientUser, $senderUser, $messageObj) {
         if (!$recipientUser || !$recipientUser->email) {
@@ -737,10 +839,18 @@ if (!function_exists('send_private_message_email')) {
 
         $siteTitle = site_name();
         $senderUsername = $senderUser->username;
-        $inboxUrl = url('/dashboard?section=messages');
-        $settingsUrl = url('/dashboard?section=notifications');
-        $snippet = \Illuminate\Support\Str::limit(strip_tags($messageObj->body ?? ''), 160);
-        $subjectLine = !empty($messageObj->subject) ? $messageObj->subject : "Private message from @{$senderUsername}";
+        $inboxUrl = url('/dashboard/messages?with=' . rawurlencode($senderUsername));
+        $settingsUrl = url('/dashboard/notifications');
+        $rawBody = trim(strip_tags((string) ($messageObj->body ?? '')));
+        if ($rawBody === '' && !empty($messageObj->attachment_name)) {
+            $rawBody = 'Sent a file: ' . $messageObj->attachment_name;
+        }
+        if ($rawBody === '') {
+            $rawBody = 'Sent you a private message.';
+        }
+        $snippet = htmlspecialchars(\Illuminate\Support\Str::limit($rawBody, 160), ENT_QUOTES, 'UTF-8');
+        $subjectLine = htmlspecialchars(!empty($messageObj->subject) ? $messageObj->subject : "Private message from @{$senderUsername}", ENT_QUOTES, 'UTF-8');
+        $senderUsernameSafe = htmlspecialchars($senderUsername, ENT_QUOTES, 'UTF-8');
 
         $subject = "New private message from @{$senderUsername} - {$siteTitle}";
 
@@ -759,7 +869,7 @@ if (!function_exists('send_private_message_email')) {
     <tr>
       <td style="padding:28px 24px;">
         <p style="font-size:15px;line-height:1.6;color:#ffffff;margin:0 0 16px;">Hi <strong>@{$recipientUser->username}</strong>,</p>
-        <p style="font-size:14px;line-height:1.6;color:#cbd5e1;margin:0 0 18px;">You have received a new private message from <strong style="color:#ff2bd6;">@{$senderUsername}</strong>:</p>
+        <p style="font-size:14px;line-height:1.6;color:#cbd5e1;margin:0 0 18px;">You have received a new private message from <strong style="color:#ff2bd6;">@{$senderUsernameSafe}</strong>:</p>
         <div style="background:#07030d;border:1px solid rgba(25,227,255,0.25);border-left:4px solid #19e3ff;border-radius:8px;padding:16px;margin:16px 0;">
           <p style="font-size:13px;color:#a291b5;margin:0 0 8px;font-weight:bold;">Subject: {$subjectLine}</p>
           <p style="font-size:14px;color:#ffffff;line-height:1.6;margin:0;font-style:italic;">"{$snippet}"</p>
