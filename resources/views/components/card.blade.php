@@ -75,9 +75,14 @@
   $isSingle = !empty($isSinglePost);
   $textLimit = (int)($siteSettings['feed_text_excerpt_limit'] ?? 280);
   $captionLimit = (int)($siteSettings['feed_caption_excerpt_limit'] ?? 140);
-  $captionRaw = $p->caption ?? '';
-  $isCapLong = !$isSingle && (mb_strlen($captionRaw) > $captionLimit);
-  $displayCap = $isCapLong ? mb_substr($captionRaw, 0, $captionLimit) . '...' : $captionRaw;
+  $mediaHtml = trim((string)($p->body ?? ''));
+  if (plain_post_text($mediaHtml) === '') {
+      $fallbackCaption = trim((string)($p->caption ?? ''));
+      $mediaHtml = $fallbackCaption !== '' ? '<p>' . e($fallbackCaption) . '</p>' : '';
+  }
+  $mediaPlain = plain_post_text($mediaHtml);
+  [$displayCap, $isCapLong] = $isSingle ? [$mediaPlain, false] : feed_media_excerpt($mediaPlain, $captionLimit);
+  $mediaAllowed = '<p><br><b><strong><i><em><u><s><strike><h2><h3><h4><blockquote><ul><ol><li><a><code><pre><span><mark><hr><div>';
 @endphp
 
 @if($isVideo)
@@ -94,13 +99,33 @@
       Your browser does not support HTML5 video.
     </video>
   </figure>
-  <div class="c-body"><p>{{ $displayCap }} @if($isCapLong)<a href="{{ $postUrl }}" target="_blank" style="color:#19e3ff;font-weight:600;font-size:12px;text-decoration:underline;">Read more &rarr;</a>@endif</p>
+  <div class="c-body">
+    @if(!empty($p->heading))
+      <h3 style="margin:0 0 8px;font-size:1.05rem;line-height:1.35;">@if(!$isSingle)<a href="{{ $postUrl }}" target="_blank" style="color:inherit;text-decoration:none;">{{ $p->heading }}</a>@else{{ $p->heading }}@endif</h3>
+    @endif
+    @if($mediaPlain !== '')
+      @if($isSingle)
+        <div class="rich-body">{!! strip_tags($mediaHtml, $mediaAllowed) !!}</div>
+      @else
+        <p style="margin:0;">{{ $displayCap }} @if($isCapLong)<a href="{{ $postUrl }}" target="_blank" style="color:#19e3ff;font-weight:600;font-size:12px;text-decoration:underline;">Read more &rarr;</a>@endif</p>
+      @endif
+    @endif
 
 @elseif($type === 'photo')
   <figure class="media">
-    <img src="{{ $mediaUrl }}" alt="{{ $p->caption ?? '' }}" loading="lazy" decoding="async">
+    <img src="{{ $mediaUrl }}" alt="{{ $mediaPlain }}" loading="lazy" decoding="async">
   </figure>
-  <div class="c-body"><p>{{ $displayCap }} @if($isCapLong)<a href="{{ $postUrl }}" target="_blank" style="color:#19e3ff;font-weight:600;font-size:12px;text-decoration:underline;">Read more &rarr;</a>@endif</p>
+  <div class="c-body">
+    @if(!empty($p->heading))
+      <h3 style="margin:0 0 8px;font-size:1.05rem;line-height:1.35;">@if(!$isSingle)<a href="{{ $postUrl }}" target="_blank" style="color:inherit;text-decoration:none;">{{ $p->heading }}</a>@else{{ $p->heading }}@endif</h3>
+    @endif
+    @if($mediaPlain !== '')
+      @if($isSingle)
+        <div class="rich-body">{!! strip_tags($mediaHtml, $mediaAllowed) !!}</div>
+      @else
+        <p style="margin:0;">{{ $displayCap }} @if($isCapLong)<a href="{{ $postUrl }}" target="_blank" style="color:#19e3ff;font-weight:600;font-size:12px;text-decoration:underline;">Read more &rarr;</a>@endif</p>
+      @endif
+    @endif
 
 @elseif($type === 'text')
   @php

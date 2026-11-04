@@ -38,6 +38,7 @@
   <title>{{ $title ?? ucfirst($section ?? 'Dashboard') }} &middot; Creator Studio | {{ site_name() }}</title>
   <meta name="max-image-mb" content="{{ $settings['max_image_mb'] ?? 5 }}">
   <meta name="max-text-length" content="{{ $settings['post_max_text_length'] ?? 10000 }}">
+  <meta name="max-caption-length" content="{{ $settings['post_max_caption_length'] ?? 450 }}">
   <script>window.MAX_IMAGE_MB = {{ (float)($settings['max_image_mb'] ?? 5) }};</script>
   <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/favicon-32.png') }}">
   <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('assets/favicon-192.png') }}">
@@ -856,6 +857,7 @@
                     ✨ Rich Text Formatting (Headers &amp; Links) Enabled
                   </span>
                 </div>
+                <p id="captionLimitHint" class="hidden text-[11px] text-slate-400 mb-2">Photo and video text is limited to {{ (int)($settings['post_max_caption_length'] ?? 450) }} characters (about 2–3 sentences). Feeds show about one sentence. The full text appears when the post is opened.</p>
 
                 <div class="rich-editor" id="dashboardRichEditor">
                   <div class="editor-toolbar" role="toolbar" aria-label="Formatting options">
@@ -1161,6 +1163,9 @@
               } else {
                 bodyLabel.textContent = 'Body Content';
               }
+              const captionHint = document.getElementById('captionLimitHint');
+              if (captionHint) captionHint.classList.toggle('hidden', type !== 'photo' && type !== 'video');
+              document.dispatchEvent(new Event('nina-post-type-changed'));
 
               checkQueueEligibility(type);
             });
@@ -1291,6 +1296,7 @@
                     ✨ Rich Text Formatting Enabled
                   </span>
                 </div>
+                <p id="editCaptionLimitHint" class="{{ in_array($post->type, ['photo', 'video']) ? '' : 'hidden' }} text-[11px] text-slate-400 mb-2">Limited to {{ (int)($settings['post_max_caption_length'] ?? 450) }} characters (about 2–3 sentences).</p>
 
                 <div class="rich-editor" id="editDashboardRichEditor">
                   <div class="editor-toolbar" role="toolbar" aria-label="Formatting options">
@@ -1453,6 +1459,9 @@
                   editBodyLabel.textContent = 'Body Content';
                 }
               }
+              const editCaptionHint = document.getElementById('editCaptionLimitHint');
+              if (editCaptionHint) editCaptionHint.classList.toggle('hidden', type !== 'photo' && type !== 'video');
+              document.dispatchEvent(new Event('nina-post-type-changed'));
             });
           });
         </script>

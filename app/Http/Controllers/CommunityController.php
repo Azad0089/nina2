@@ -172,14 +172,23 @@ class CommunityController extends Controller
             'tags' => array_values(array_filter(array_map('trim', explode(',', (string)$request->input('tags', ''))))),
         ];
 
+        $body = $request->input('body');
+        $caption = $request->input('caption');
+        if ($captionError = media_caption_error($type, $body, $caption)) {
+            return redirect()->back()->withInput()->with('error', $captionError);
+        }
+        if (in_array($type, ['photo', 'video', 'image', 'images', 'photos'], true) && plain_post_text((string) $caption) === '' && plain_post_text((string) $body) !== '') {
+            $caption = plain_post_text((string) $body);
+        }
+
         Post::create([
             'blog_id' => $blog->id,
             'type' => $type,
             'status' => 'published',
             'is_community' => 1,
             'heading' => $request->input('heading'),
-            'body' => $request->input('body'),
-            'caption' => $request->input('caption'),
+            'body' => $body,
+            'caption' => $caption,
             'quote_text' => $request->input('quote_text'),
             'quote_source' => $request->input('quote_source'),
             'link_url' => $request->input('link_url'),

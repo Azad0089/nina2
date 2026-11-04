@@ -6,6 +6,100 @@ use Illuminate\Http\Request;
 
 class PageController extends Controller
 {
+    private bool $capturingStatic = false;
+
+    private ?array $capturedStatic = null;
+
+    public function editorState(string $key): array
+    {
+        $defs = static_page_definitions();
+        if (!isset($defs[$key])) {
+            $key = 'about';
+        }
+
+        $this->capturingStatic = true;
+        $this->capturedStatic = null;
+        try {
+            $this->{$defs[$key]['method']}();
+        } catch (\Throwable $e) {
+            $this->capturedStatic = [
+                'title' => $defs[$key]['label'],
+                'lead' => '',
+                'bodyHtml' => '',
+                'color' => '#19e3ff',
+            ];
+        }
+        $this->capturingStatic = false;
+
+        $defaults = $this->capturedStatic ?: [
+            'title' => $defs[$key]['label'],
+            'lead' => '',
+            'bodyHtml' => '',
+            'color' => '#19e3ff',
+        ];
+        $saved = static_page_saved($key);
+        $current = [
+            'title' => $defaults['title'],
+            'lead' => $defaults['lead'] ?? '',
+            'body' => $defaults['bodyHtml'] ?? '',
+        ];
+        if (is_array($saved)) {
+            if (trim((string) ($saved['title'] ?? '')) !== '') {
+                $current['title'] = (string) $saved['title'];
+            }
+            if (array_key_exists('lead', $saved)) {
+                $current['lead'] = (string) $saved['lead'];
+            }
+            if (array_key_exists('body', $saved)) {
+                $current['body'] = (string) $saved['body'];
+            }
+        }
+
+        return [
+            'pages' => $defs,
+            'key' => $key,
+            'current' => $current,
+            'saved' => is_array($saved),
+        ];
+    }
+
+    private function finishStatic(string $key, array $data, string $view = 'pages.content-page')
+    {
+        $title = (string) ($data['title'] ?? '');
+        $lead = (string) ($data['lead'] ?? '');
+        $body = (string) ($data['bodyHtml'] ?? '');
+
+        if ($this->capturingStatic) {
+            $this->capturedStatic = [
+                'title' => $title,
+                'lead' => $lead,
+                'bodyHtml' => $body,
+                'color' => $data['color'] ?? '#19e3ff',
+            ];
+            return response('');
+        }
+
+        $applied = static_page_apply($key, $title, $lead, $body);
+        $data['title'] = $applied['title'];
+        $data['lead'] = $applied['lead'];
+        $data['bodyHtml'] = $applied['body'];
+
+        if (!empty($data['pageSchema']) && is_array($data['pageSchema'])) {
+            $data['pageSchema']['name'] = $applied['title'];
+            $data['pageSchema']['description'] = $applied['lead'];
+            if (($data['pageSchema']['@type'] ?? '') === 'FAQPage') {
+                $questions = faq_questions_from_html($applied['body']);
+                if ($questions) {
+                    $data['pageSchema']['mainEntity'] = $questions;
+                } elseif ($applied['custom']) {
+                    unset($data['pageSchema']['mainEntity']);
+                }
+            }
+        }
+
+        return view($view, $data);
+    }
+
     public function advertising()
     {
         return view('pages.advertising');
@@ -18,7 +112,24 @@ class PageController extends Controller
 
     public function support()
     {
-        return view('pages.support');
+        $bodyHtml = <<<'HTML'
+<section class="faq-group">
+  <h2 class="sec-title">Getting started</h2>
+  <details class="faq"><summary>How do I start a blog?</summary><p>Press Sign up, choose a blog name and confirm you are 18 or older. Your first blog is created automatically.</p></details>
+  <details class="faq"><summary>What post formats can I use?</summary><p>Text, photo, video, quote, link, and chat.</p></details>
+</section>
+<section class="faq-group">
+  <h2 class="sec-title">Design &amp; Customization</h2>
+  <details class="faq"><summary>Can I customize my blog colors?</summary><p>Yes, visit Blog settings in your Dashboard to change theme colors, avatars, and cover photos.</p></details>
+</section>
+HTML;
+
+        return $this->finishStatic('support', [
+            'title' => 'Help Center',
+            'lead' => 'Quick answers. Cannot find yours? Ask us.',
+            'color' => '#19e3ff',
+            'bodyHtml' => $bodyHtml,
+        ], 'pages.support');
     }
 
     public function terms()
@@ -127,7 +238,7 @@ class PageController extends Controller
 </div>
 HTML;
 
-        return view('pages.content-page', [
+        return $this->finishStatic('terms', [
             'title' => 'Terms of Service',
             'lead' => "Please read these terms before using {$site}. By entering the site or creating an account you agree to them.",
             'color' => '#ff2bd6',
@@ -214,7 +325,7 @@ HTML;
 </div>
 HTML;
 
-        return view('pages.content-page', [
+        return $this->finishStatic('privacy', [
             'title' => 'Privacy Policy',
             'lead' => "How {$site} handles, protects, and respects your personal data and creative content.",
             'color' => '#19e3ff',
@@ -287,7 +398,7 @@ HTML;
 </div>
 HTML;
 
-        return view('pages.content-page', [
+        return $this->finishStatic('rules', [
             'title' => 'Community Rules',
             'lead' => "{$site} is a place for adults to be creative and loud. These rules keep it that way.",
             'color' => '#ffd60a',
@@ -353,7 +464,7 @@ HTML;
 </div>
 HTML;
 
-        return view('pages.content-page', [
+        return $this->finishStatic('dmca', [
             'title' => 'DMCA & Copyright Notice',
             'lead' => 'Designated copyright agent, statutory notice requirements, and takedown procedures.',
             'color' => '#ff1f4b',
@@ -446,7 +557,7 @@ HTML;
             $organization['email'] = $email;
         }
 
-        return view('pages.content-page', [
+        return $this->finishStatic('about', [
             'title' => 'About ' . $name,
             'lead' => $lead,
             'color' => '#ff2bd6',
@@ -484,7 +595,7 @@ HTML;
             ];
         }
 
-        return view('pages.content-page', [
+        return $this->finishStatic('faq', [
             'title' => 'Frequently Asked Questions',
             'lead' => 'Everything you need to know about blogging, points, and platform features.',
             'color' => '#19e3ff',
@@ -542,7 +653,7 @@ HTML;
 </div>
 HTML;
 
-        return view('pages.content-page', [
+        return $this->finishStatic('compliance', [
             'title' => '18 U.S.C. § 2257 Recordkeeping Compliance',
             'lead' => 'Statutory age verification, recordkeeping custodian details, and producer obligations.',
             'color' => '#ffd60a',
@@ -587,7 +698,7 @@ HTML;
 </div>
 HTML;
 
-        return view('pages.content-page', [
+        return $this->finishStatic('safety', [
             'title' => 'Trust, Safety & Community Protection',
             'lead' => 'Our zero-tolerance standards, non-consensual imagery elimination, and creator safety protocols.',
             'color' => '#ff1f4b',
@@ -713,8 +824,13 @@ HTML;
         return redirect()->route('login')->with('success', 'Your password has been updated. Please sign in with your new password.');
     }
 
-    public function contactView(Request $request)
+    public function contactView()
     {
-        return view('pages.contact');
+        return $this->finishStatic('contact', [
+            'title' => 'Contact us',
+            'lead' => 'Questions, reports and appeals go straight to the site admin.',
+            'color' => '#19e3ff',
+            'bodyHtml' => '<p>We usually reply within 2 to 3 business days. Reports of illegal content are handled first.</p>',
+        ], 'pages.contact');
     }
 }

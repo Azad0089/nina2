@@ -125,7 +125,7 @@
             </span>
           </div>
 
-          <form method="POST" action="{{ route('community.post.store') }}" enctype="multipart/form-data">
+          <form method="POST" action="{{ route('community.post.store') }}" enctype="multipart/form-data" id="communityComposer">
             @csrf
             <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
               <label style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,255,255,0.05);border:1px solid var(--line);border-radius:6px;font-size:12px;cursor:pointer;color:#fff;">
@@ -151,7 +151,8 @@
             </div>
 
             <div style="margin-bottom:12px;">
-              <textarea name="body" rows="3" placeholder="Share your update, art, or message with the community..." required style="width:100%;padding:10px 14px;background:var(--ink);border:1px solid var(--line);border-radius:8px;color:#fff;font-size:14px;line-height:1.5;"></textarea>
+              <textarea name="body" id="communityBody" rows="3" data-caption-max="{{ (int) \App\Models\Setting::get('post_max_caption_length', 450) }}" placeholder="Share your update, art, or message with the community..." required style="width:100%;padding:10px 14px;background:var(--ink);border:1px solid var(--line);border-radius:8px;color:#fff;font-size:14px;line-height:1.5;"></textarea>
+              <p id="communityCaptionHint" hidden style="margin:6px 0 0;font-size:12px;color:var(--mute);">Photo and video text is limited to {{ (int) \App\Models\Setting::get('post_max_caption_length', 450) }} characters (about 2–3 sentences).</p>
             </div>
 
             <div id="communityMediaUploadBox" style="display:none;margin-bottom:12px;padding:12px;background:rgba(255,255,255,0.02);border:1px dashed var(--line);border-radius:8px;">
@@ -178,8 +179,19 @@
           function toggleCommunityFields(type) {
             const mediaBox = document.getElementById('communityMediaUploadBox');
             const quoteBox = document.getElementById('communityQuoteBox');
+            const body = document.getElementById('communityBody');
+            const hint = document.getElementById('communityCaptionHint');
             if (mediaBox) mediaBox.style.display = (type === 'photo' || type === 'video') ? 'block' : 'none';
             if (quoteBox) quoteBox.style.display = (type === 'quote') ? 'block' : 'none';
+            if (body) {
+              const max = parseInt(body.getAttribute('data-caption-max') || '450', 10);
+              if (type === 'photo' || type === 'video') {
+                body.setAttribute('maxlength', String(max));
+              } else {
+                body.removeAttribute('maxlength');
+              }
+            }
+            if (hint) hint.hidden = !(type === 'photo' || type === 'video');
           }
         </script>
       @endif

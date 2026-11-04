@@ -464,6 +464,173 @@ if (!function_exists('post_schema')) {
     }
 }
 
+if (!function_exists('plain_post_text')) {
+    function plain_post_text($html): string
+    {
+        $text = html_entity_decode(strip_tags((string) $html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = str_replace("\xc2\xa0", ' ', $text);
+        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
+        return trim($text);
+    }
+}
+
+if (!function_exists('media_caption_limit')) {
+    function media_caption_limit(): int
+    {
+        try {
+            $limit = (int) \App\Models\Setting::get('post_max_caption_length', 450);
+        } catch (\Throwable $e) {
+            $limit = 450;
+        }
+        if ($limit < 80) {
+            $limit = 80;
+        }
+        if ($limit > 2000) {
+            $limit = 2000;
+        }
+        return $limit;
+    }
+}
+
+if (!function_exists('media_caption_error')) {
+    function media_caption_error(string $type, $body, $caption = null): ?string
+    {
+        if (!in_array($type, ['photo', 'video', 'image', 'images', 'photos'], true)) {
+            return null;
+        }
+        $limit = media_caption_limit();
+        foreach ([plain_post_text($body), plain_post_text($caption)] as $text) {
+            if ($text !== '' && mb_strlen($text) > $limit) {
+                return 'Photo and video text is limited to ' . $limit . ' characters (about 2–3 sentences). Shorten the text and try again.';
+            }
+        }
+        return null;
+    }
+}
+
+if (!function_exists('feed_media_excerpt')) {
+    function feed_media_excerpt(string $text, int $limit): array
+    {
+        $text = plain_post_text($text);
+        if ($limit < 30) {
+            $limit = 30;
+        }
+        if ($text === '') {
+            return ['', false];
+        }
+        if (preg_match('/^(.{8,}?[.!?])(?:\s+\S)/u', $text, $match) && mb_strlen($match[1]) <= $limit) {
+            return [$match[1], true];
+        }
+        if (mb_strlen($text) <= $limit) {
+            return [$text, false];
+        }
+        $cut = mb_substr($text, 0, $limit);
+        $space = mb_strrpos($cut, ' ');
+        if ($space !== false && $space > (int) ($limit * 0.6)) {
+            $cut = mb_substr($cut, 0, $space);
+        }
+        return [rtrim($cut, " \t,;:") . '...', true];
+    }
+}
+
+if (!function_exists('static_page_definitions')) {
+    function static_page_definitions(): array
+    {
+        return [
+            'about' => ['label' => 'About', 'method' => 'about', 'path' => '/about'],
+            'faq' => ['label' => 'FAQ', 'method' => 'faq', 'path' => '/faq'],
+            'terms' => ['label' => 'Terms', 'method' => 'terms', 'path' => '/terms'],
+            'privacy' => ['label' => 'Privacy', 'method' => 'privacy', 'path' => '/privacy'],
+            'rules' => ['label' => 'Rules', 'method' => 'rules', 'path' => '/rules'],
+            'compliance' => ['label' => 'Compliance', 'method' => 'compliance', 'path' => '/compliance'],
+            'safety' => ['label' => 'Safety', 'method' => 'safety', 'path' => '/safety'],
+            'dmca' => ['label' => 'DMCA', 'method' => 'dmca', 'path' => '/dmca'],
+            'support' => ['label' => 'Support', 'method' => 'support', 'path' => '/support'],
+            'contact' => ['label' => 'Contact support', 'method' => 'contactView', 'path' => '/contact'],
+        ];
+    }
+}
+
+if (!function_exists('static_page_saved')) {
+    function static_page_saved(string $key): ?array
+    {
+        if (!isset(static_page_definitions()[$key])) {
+            return null;
+        }
+        try {
+            $raw = \App\Models\Setting::get('static_page_' . $key);
+        } catch (\Throwable $e) {
+            return null;
+        }
+        if (!is_string($raw) || trim($raw) === '') {
+            return null;
+        }
+        $data = json_decode($raw, true);
+        return is_array($data) ? $data : null;
+    }
+}
+
+if (!function_exists('static_page_apply')) {
+    function static_page_apply(string $key, string $title, string $lead, string $body): array
+    {
+        $saved = static_page_saved($key);
+        if ($saved === null) {
+            return ['title' => $title, 'lead' => $lead, 'body' => $body, 'custom' => false];
+        }
+        $savedTitle = trim((string) ($saved['title'] ?? ''));
+        return [
+            'title' => $savedTitle !== '' ? $savedTitle : $title,
+            'lead' => array_key_exists('lead', $saved) ? (string) $saved['lead'] : $lead,
+            'body' => array_key_exists('body', $saved) ? (string) $saved['body'] : $body,
+            'custom' => true,
+        ];
+    }
+}
+
+if (!function_exists('static_page_sanitize')) {
+    function static_page_sanitize(string $html): string
+    {
+        $html = preg_replace('#<script\b[^>]*>.*?</script>#is', '', $html) ?? $html;
+        $html = preg_replace('#\son\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)#i', '', $html) ?? $html;
+        $html = preg_replace('#javascript:#i', '', $html) ?? $html;
+        return trim($html);
+    }
+}
+
+if (!function_exists('faq_questions_from_html')) {
+    function faq_questions_from_html(string $html): array
+    {
+        $questions = [];
+        if (preg_match_all('#<h2[^>]*>(.*?)</h2>\s*<p[^>]*>(.*?)</p>#is', $html, $pairs, PREG_SET_ORDER)) {
+            foreach ($pairs as $pair) {
+                $q = plain_post_text($pair[1]);
+                $a = plain_post_text($pair[2]);
+                if ($q !== '' && $a !== '') {
+                    $questions[] = [
+                        '@type' => 'Question',
+                        'name' => $q,
+                        'acceptedAnswer' => ['@type' => 'Answer', 'text' => $a],
+                    ];
+                }
+            }
+        }
+        if ($questions === [] && preg_match_all('#<summary[^>]*>(.*?)</summary>\s*<p[^>]*>(.*?)</p>#is', $html, $pairs, PREG_SET_ORDER)) {
+            foreach ($pairs as $pair) {
+                $q = plain_post_text($pair[1]);
+                $a = plain_post_text($pair[2]);
+                if ($q !== '' && $a !== '') {
+                    $questions[] = [
+                        '@type' => 'Question',
+                        'name' => $q,
+                        'acceptedAnswer' => ['@type' => 'Answer', 'text' => $a],
+                    ];
+                }
+            }
+        }
+        return $questions;
+    }
+}
+
 if (!function_exists('initial')) {
     function initial($str) {
         $str = trim((string)$str);

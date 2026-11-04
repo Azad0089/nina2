@@ -8,9 +8,9 @@
   $contactSchema = [
     '@context' => 'https://schema.org',
     '@type' => 'ContactPage',
-    'name' => 'Contact ' . site_name(),
+    'name' => ($title ?? 'Contact') . ' | ' . site_name(),
     'url' => url('/contact'),
-    'description' => 'Contact ' . site_name() . ' support for questions, reports, appeals, verification, advertising, and legal requests.',
+    'description' => $lead ?? ('Contact ' . site_name() . ' support for questions, reports, appeals, verification, advertising, and legal requests.'),
     'mainEntity' => [
       '@type' => 'Organization',
       'name' => site_name(),
@@ -55,11 +55,17 @@
   <main class="page" id="main">
     @include('partials.page-hero', [
       'hero' => [
-        'title' => 'Contact us',
-        'lead' => 'Questions, reports and appeals go straight to the site admin.',
-        'color' => '#19e3ff'
+        'title' => $title ?? 'Contact us',
+        'lead' => $lead ?? 'Questions, reports and appeals go straight to the site admin.',
+        'color' => $color ?? '#19e3ff'
       ]
     ])
+
+    @if(!empty($bodyHtml))
+      <div class="panel" style="max-width:800px;margin:0 auto 20px;line-height:1.7;">
+        {!! $bodyHtml !!}
+      </div>
+    @endif
 
     <div class="contact-grid">
       <section class="panel" aria-labelledby="cf-h">
@@ -128,10 +134,6 @@
             <p>{{ $contactEmail }}</p>
           </div>
         </a>
-
-        <p class="fine" style="color:var(--mute);font-size:12px;line-height:1.6;margin-top:6px;">
-          We usually reply within 2 to 3 business days. Reports of illegal content are handled first.
-        </p>
       </aside>
     </div>
   </main>

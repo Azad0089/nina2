@@ -199,6 +199,15 @@ class DashboardController extends Controller implements HasMiddleware
 
         $publishedAt = ($status === 'published') ? now() : ($status === 'queued' ? $scheduledAt : null);
 
+        $body = $request->input('body');
+        $caption = $request->input('caption');
+        if ($captionError = media_caption_error($type, $body, $caption)) {
+            return redirect()->back()->withInput()->with('error', $captionError);
+        }
+        if (in_array($type, ['photo', 'video', 'image', 'images', 'photos'], true) && plain_post_text((string) $caption) === '' && plain_post_text((string) $body) !== '') {
+            $caption = plain_post_text((string) $body);
+        }
+
         $rawTags = $request->input('tags', '');
         $tagArray = [];
         if (!empty($rawTags)) {
@@ -212,8 +221,8 @@ class DashboardController extends Controller implements HasMiddleware
             'type' => $type,
             'status' => $status,
             'heading' => $request->input('heading'),
-            'body' => $request->input('body'),
-            'caption' => $request->input('caption'),
+            'body' => $body,
+            'caption' => $caption,
             'media_path' => $mediaPath ?: $request->input('media_url'),
             'media_type' => $mediaType,
             'media_meta' => !empty($tagArray) ? ['tags' => $tagArray] : null,
@@ -391,6 +400,13 @@ class DashboardController extends Controller implements HasMiddleware
             $post->published_at = now();
         } elseif ($action === 'draft') {
             $post->status = 'draft';
+        }
+
+        if ($captionError = media_caption_error((string) $post->type, $post->body, $post->caption)) {
+            return redirect()->back()->withInput()->with('error', $captionError);
+        }
+        if (in_array($post->type, ['photo', 'video', 'image', 'images', 'photos'], true) && plain_post_text((string) $post->caption) === '' && plain_post_text((string) $post->body) !== '') {
+            $post->caption = plain_post_text((string) $post->body);
         }
 
         $post->save();

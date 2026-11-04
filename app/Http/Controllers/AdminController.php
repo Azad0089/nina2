@@ -45,10 +45,15 @@ class AdminController extends Controller
         $settings = Setting::pluck('value', 'key')->all();
 
         $title = ucfirst($section);
+        $staticPageEditor = null;
+        if ($section === 'pages') {
+            $staticPageEditor = app(PageController::class)->editorState((string) $request->query('page', 'about'));
+        }
 
         return view('admin', compact(
             'section', 'allPosts', 'allUsers', 'allBlogs', 'reports', 'tickets',
-            'verifications', 'donations', 'logins', 'promotions', 'allAds', 'heroSlides', 'settings', 'title'
+            'verifications', 'donations', 'logins', 'promotions', 'allAds', 'heroSlides', 'settings', 'title',
+            'staticPageEditor'
         ));
     }
 
@@ -124,6 +129,43 @@ class AdminController extends Controller
         return $this->index($request);
     }
 
+    public function pages(Request $request)
+    {
+        $request->merge(['section' => 'pages']);
+        return $this->index($request);
+    }
+
+    public function savePage(Request $request)
+    {
+        $this->checkAdmin();
+
+        $key = (string) $request->input('page_key', '');
+        $defs = static_page_definitions();
+        if (!isset($defs[$key])) {
+            return redirect()->route('admin.pages')->with('error', 'That page cannot be edited.');
+        }
+
+        if ($request->input('reset') === '1') {
+            Setting::where('key', 'static_page_' . $key)->delete();
+            return redirect()->route('admin.pages', ['page' => $key])->with('success', $defs[$key]['label'] . ' restored to the original text.');
+        }
+
+        $title = mb_substr(trim((string) $request->input('title', '')), 0, 180);
+        $lead = mb_substr(trim((string) $request->input('lead', '')), 0, 500);
+        $body = static_page_sanitize((string) $request->input('body', ''));
+        if (mb_strlen($body) > 200000) {
+            return redirect()->route('admin.pages', ['page' => $key])->with('error', 'Page text is too long.');
+        }
+
+        Setting::set('static_page_' . $key, json_encode([
+            'title' => $title,
+            'lead' => $lead,
+            'body' => $body,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+        return redirect()->route('admin.pages', ['page' => $key])->with('success', $defs[$key]['label'] . ' page text saved.');
+    }
+
     public function saveSettings(Request $request)
     {
         $this->checkAdmin();
@@ -170,6 +212,12 @@ class AdminController extends Controller
 
         if (array_key_exists('max_message_file_mb', $settingsToSave)) {
             $settingsToSave['max_message_file_mb'] = (string) max(0, min(500, (float) $settingsToSave['max_message_file_mb']));
+        }
+        if (array_key_exists('post_max_caption_length', $settingsToSave)) {
+            $settingsToSave['post_max_caption_length'] = (string) max(80, min(2000, (int) $settingsToSave['post_max_caption_length']));
+        }
+        if (array_key_exists('feed_caption_excerpt_limit', $settingsToSave)) {
+            $settingsToSave['feed_caption_excerpt_limit'] = (string) max(30, min(1000, (int) $settingsToSave['feed_caption_excerpt_limit']));
         }
 
         $maxImageMb = (float) Setting::get('max_image_mb', 5);

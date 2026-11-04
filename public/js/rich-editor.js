@@ -340,13 +340,33 @@
       updateWordCount();
     }
 
+    function postType() {
+      const typeInput = form ? form.querySelector('input[name="type"]') : null;
+      return typeInput ? typeInput.value : 'text';
+    }
+
+    function maxCharsForType() {
+      const type = postType();
+      if (type === 'photo' || type === 'video') {
+        const capMeta = document.querySelector('meta[name="max-caption-length"]');
+        const cap = capMeta ? parseInt(capMeta.content, 10) : 450;
+        return cap > 0 ? cap : 450;
+      }
+      const metaMax = document.querySelector('meta[name="max-text-length"]');
+      const maxChars = metaMax && parseInt(metaMax.content, 10) > 0 ? parseInt(metaMax.content, 10) : 10000;
+      return maxChars;
+    }
+
+    function plainLength() {
+      return ((canvas.innerText || '').replace(/\s+/g, ' ').trim()).length;
+    }
+
     function updateWordCount() {
       if (!wordCount) return;
       const text = canvas.innerText || '';
       const words = text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
-      const chars = text.length;
-      const metaMax = document.querySelector('meta[name="max-text-length"]');
-      const maxChars = metaMax && parseInt(metaMax.content, 10) > 0 ? parseInt(metaMax.content, 10) : 10000;
+      const chars = plainLength();
+      const maxChars = maxCharsForType();
       const readingTime = Math.max(1, Math.ceil(words / 200));
       if (chars > maxChars) {
         wordCount.innerHTML = `<span style="color:#f87171;font-weight:700;">⚠️ ${chars.toLocaleString()} / ${maxChars.toLocaleString()} chars (limit exceeded)</span> &middot; ${words.toLocaleString()} words`;
@@ -684,10 +704,17 @@
     }
 
     if (form) {
-      form.addEventListener('submit', () => {
+      form.addEventListener('submit', (e) => {
         sync();
+        const type = postType();
+        if ((type === 'photo' || type === 'video') && plainLength() > maxCharsForType()) {
+          e.preventDefault();
+          alert('Photo and video text is limited to ' + maxCharsForType() + ' characters (about 2–3 sentences).');
+        }
       });
     }
+
+    document.addEventListener('nina-post-type-changed', updateWordCount);
 
     // Initial word count
     updateWordCount();

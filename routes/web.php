@@ -230,6 +230,8 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::get('/support.php', [AdminController::class, 'support']);
     Route::get('/settings', [AdminController::class, 'settings'])->name('admin.settings');
     Route::post('/settings/save', [AdminController::class, 'saveSettings'])->name('admin.settings.save');
+    Route::get('/pages', [AdminController::class, 'pages'])->name('admin.pages');
+    Route::post('/pages/save', [AdminController::class, 'savePage'])->name('admin.pages.save');
     Route::post('/smtp/test', [AdminController::class, 'testSmtp'])->name('admin.smtp.test');
 
     // Admin Actions

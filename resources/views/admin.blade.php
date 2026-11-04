@@ -209,6 +209,13 @@
             <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ ($section ?? '') === 'slider' ? 'bg-pink-500/20 text-pink-300' : 'bg-white/10 text-slate-300' }}">{{ isset($heroSlides) ? count($heroSlides) : 0 }}</span>
           </a>
 
+          <a href="{{ route('admin.pages') }}" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition {{ ($section ?? '') === 'pages' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' }}">
+            <span class="flex items-center gap-3">
+              {!! icon('text') !!}
+              <span>Static Pages</span>
+            </span>
+          </a>
+
           <a href="{{ route('admin.settings') }}" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition {{ ($section ?? '') === 'settings' ? 'bg-pink-600/15 text-pink-400 border-l-2 border-pink-500 font-bold' : 'text-slate-300 hover:text-white hover:bg-white/5' }}">
             <span class="flex items-center gap-3">
               {!! icon('settings') !!}
@@ -284,6 +291,7 @@
         <a href="{{ route('admin.reports') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'reports' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Reports ({{ $reports->where('status','open')->count() }})</a>
         <a href="{{ route('admin.support') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'support' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Support ({{ $tickets->where('status','open')->count() }})</a>
         <a href="{{ route('admin.logins') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'logins' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Security & IPs</a>
+        <a href="{{ route('admin.pages') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'pages' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Static Pages</a>
         <a href="{{ route('admin.settings') }}" class="px-3.5 py-1.5 rounded-lg whitespace-nowrap transition {{ ($section ?? '') === 'settings' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">Platform Settings</a>
       </div>
 
@@ -1572,6 +1580,61 @@
           }
         </script>
 
+      <!-- ================= SECTION: STATIC PAGES ================= -->
+      @elseif(($section ?? '') === 'pages')
+        @php $pageEditor = $staticPageEditor ?? null; @endphp
+        <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-6 lg:p-8 shadow-xl">
+          <div class="mb-6 pb-4 border-b border-white/10">
+            <h2 class="font-display font-bold text-2xl text-white">Edit static pages</h2>
+            <p class="text-sm text-slate-400 mt-1">Change the title, intro, and text on About, FAQ, Terms, Privacy, Rules, Compliance, Safety, DMCA, Support, and Contact. The contact form itself stays in place.</p>
+          </div>
+
+          @if($pageEditor)
+            <div class="flex flex-wrap gap-2 mb-6">
+              @foreach($pageEditor['pages'] as $pageKey => $pageMeta)
+                <a href="{{ route('admin.pages', ['page' => $pageKey]) }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {{ $pageEditor['key'] === $pageKey ? 'bg-pink-600 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">{{ $pageMeta['label'] }}</a>
+              @endforeach
+            </div>
+
+            <form method="POST" action="{{ route('admin.pages.save') }}" class="space-y-4">
+              @csrf
+              <input type="hidden" name="page_key" value="{{ $pageEditor['key'] }}">
+
+              <div class="flex items-center justify-between gap-3">
+                <h3 class="text-lg font-bold text-white">{{ $pageEditor['pages'][$pageEditor['key']]['label'] }}</h3>
+                <a href="{{ url($pageEditor['pages'][$pageEditor['key']]['path']) }}" target="_blank" class="text-xs font-bold text-cyan-300 hover:underline">View page</a>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Page title</label>
+                <input type="text" name="title" maxlength="180" value="{{ $pageEditor['current']['title'] }}" class="w-full px-3.5 py-2.5 bg-[#07030d] border border-white/10 rounded-xl text-white focus:outline-none focus:border-pink-500">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Intro line</label>
+                <textarea name="lead" rows="2" maxlength="500" class="w-full px-3.5 py-2.5 bg-[#07030d] border border-white/10 rounded-xl text-white focus:outline-none focus:border-pink-500 text-sm leading-relaxed">{{ $pageEditor['current']['lead'] }}</textarea>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Page text</label>
+                <textarea name="body" rows="18" class="w-full px-3.5 py-2.5 bg-[#07030d] border border-white/10 rounded-xl text-white focus:outline-none focus:border-pink-500 text-xs leading-relaxed font-mono">{{ $pageEditor['current']['body'] }}</textarea>
+                <span class="text-[10px] text-slate-400 mt-1 block">This is the page content. Basic HTML such as headings, paragraphs, and links is kept. Script tags are removed.</span>
+              </div>
+
+              <button type="submit" class="px-5 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-sm font-bold transition">Save page text</button>
+            </form>
+
+            @if(!empty($pageEditor['saved']))
+              <form method="POST" action="{{ route('admin.pages.save') }}" class="mt-3">
+                @csrf
+                <input type="hidden" name="page_key" value="{{ $pageEditor['key'] }}">
+                <input type="hidden" name="reset" value="1">
+                <button type="submit" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-xs font-bold transition">Restore original text</button>
+              </form>
+            @endif
+          @endif
+        </div>
+
       <!-- ================= SECTION: PLATFORM SETTINGS ================= -->
       @elseif(($section ?? '') === 'settings')
         <div class="bg-[#0f0716] border border-white/10 rounded-2xl p-6 lg:p-8 shadow-xl">
@@ -1770,7 +1833,7 @@
                         <input type="number" min="30" max="1000" name="feed_caption_excerpt_limit" value="{{ $settings['feed_caption_excerpt_limit'] ?? 140 }}" class="w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-cyan-400">
                         <span class="absolute right-3 top-2 text-[10px] text-slate-400 font-bold">chars</span>
                       </div>
-                      <span class="text-[9px] text-slate-400 mt-0.5 block">Shows first sentence/short excerpt in media feeds</span>
+                      <span class="text-[9px] text-slate-400 mt-0.5 block">Feed shows about one sentence. The full caption appears when the post is opened.</span>
                     </div>
                   </div>
                   <div class="grid grid-cols-2 gap-4 pt-1">
@@ -1785,10 +1848,10 @@
                     <div>
                       <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">Max Caption Length</label>
                       <div class="relative">
-                        <input type="number" min="100" max="2000" name="post_max_caption_length" value="{{ $settings['post_max_caption_length'] ?? 500 }}" class="w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-cyan-400">
+                        <input type="number" min="80" max="2000" name="post_max_caption_length" value="{{ $settings['post_max_caption_length'] ?? 450 }}" class="w-full px-3 py-2 bg-[#170a22] border border-white/10 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-cyan-400">
                         <span class="absolute right-3 top-2 text-[10px] text-slate-400 font-bold">chars</span>
                       </div>
-                      <span class="text-[9px] text-slate-400 mt-0.5 block">Max characters allowed for photo/video captions</span>
+                      <span class="text-[9px] text-slate-400 mt-0.5 block">Max characters for photo/video text, about 2–3 sentences. Longer text cannot be published.</span>
                     </div>
                   </div>
                 </div>
