@@ -6,7 +6,7 @@ if (!function_exists('site_name')) {
             $name = \App\Models\Setting::get('site_title');
             if ($name) return $name;
         } catch (\Throwable $e) {}
-        return config('app.name', 'Nina.Sucks');
+        return config('app.name', 'Microblogging Nina');
     }
 }
 

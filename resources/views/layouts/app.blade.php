@@ -40,14 +40,14 @@
   <title>@yield('title', site_name() . ' | Adult Microblogging Community')</title>
   <meta name="max-image-mb" content="{{ $siteSettings['max_image_mb'] ?? 5 }}">
   <script>window.MAX_IMAGE_MB = {{ (float)($siteSettings['max_image_mb'] ?? 5) }};</script>
-  <meta name="description" content="@yield('description', $siteSettings['meta_description'] ?? 'Adult microblogging platform: text, photos, video, quotes, links, and chats.')">
+  <meta name="description" content="@yield('description', $siteSettings['meta_description'] ?? 'Microblogging Platform Nina')">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <meta name="theme-color" content="#07030d">
 
   <!-- OpenGraph & Social Cards -->
   <meta property="og:site_name" content="{{ site_name() }}">
   <meta property="og:title" content="@yield('title', site_name())">
-  <meta property="og:description" content="@yield('description', $siteSettings['meta_description'] ?? 'Adult microblogging platform')">
+  <meta property="og:description" content="@yield('description', $siteSettings['meta_description'] ?? 'Microblogging Platform Nina')">
   <meta property="og:type" content="website">
   <meta property="og:url" content="{{ url()->current() }}">
   <meta property="og:image" content="{{ asset('assets/hero.jpg') }}">

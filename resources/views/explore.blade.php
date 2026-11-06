@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Nina.Sucks | Adult Microblogging Community')
-@section('description', 'Adult microblogging platform: text, photos, video, quotes, links, and chats.')
+@section('title', site_name() . ' | Adult Microblogging Community')
+@section('description', $siteSettings['meta_description'] ?? 'Microblogging Platform Nina')
 
 @section('content')
   @include('partials.header')

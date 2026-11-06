@@ -1655,12 +1655,12 @@
 
                 <div>
                   <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Website Title</label>
-                  <input type="text" name="site_title" value="{{ $settings['site_title'] ?? 'Nina.Sucks' }}" class="w-full px-3.5 py-2.5 bg-[#07030d] border border-white/10 rounded-xl text-white focus:outline-none focus:border-pink-500">
+                  <input type="text" name="site_title" value="{{ $settings['site_title'] ?? 'Microblogging Nina' }}" class="w-full px-3.5 py-2.5 bg-[#07030d] border border-white/10 rounded-xl text-white focus:outline-none focus:border-pink-500">
                 </div>
 
                 <div>
                   <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Meta Description (SEO)</label>
-                  <textarea name="meta_description" rows="3" class="w-full px-3.5 py-2.5 bg-[#07030d] border border-white/10 rounded-xl text-white focus:outline-none focus:border-pink-500 text-sm leading-relaxed">{{ $settings['meta_description'] ?? 'An adult microblogging community. Post photos, text, video, quotes and chats.' }}</textarea>
+                  <textarea name="meta_description" rows="3" class="w-full px-3.5 py-2.5 bg-[#07030d] border border-white/10 rounded-xl text-white focus:outline-none focus:border-pink-500 text-sm leading-relaxed">{{ $settings['meta_description'] ?? 'Microblogging Platform Nina' }}</textarea>
                 </div>
 
                 <div>
